@@ -4,7 +4,7 @@ import type { QuizAnswers, RecommendationResponse } from '@workspace/api-client-
 import { ArrowLeft, BadgeCheck, CircleHelp, Compass, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { ChoiceVisual } from '@/components/choice-visual';
-import { MatchCard, currency, cashbackSummary } from '@/components/match-card';
+import { MatchCard, currency, cashbackSummary, RESULT_REVISION } from '@/components/match-card';
 import { QuizWizard } from '@/components/quiz-wizard';
 
 const initialAnswers: QuizAnswers = {
@@ -18,7 +18,7 @@ const initialAnswers: QuizAnswers = {
 };
 
 const unknown = 'غير متوفر حاليًا';
-type SavedQuiz = { answers: QuizAnswers; response: RecommendationResponse };
+type SavedQuiz = { answers: QuizAnswers; response: RecommendationResponse; revision?: string };
 function readSavedQuiz(): SavedQuiz | null {
   try {
     const saved = JSON.parse(sessionStorage.getItem('bank-match-quiz') ?? 'null') as SavedQuiz | null;
@@ -29,7 +29,7 @@ function readSavedQuiz(): SavedQuiz | null {
 export default function HomePage() {
   const [saved, setSaved] = useState<SavedQuiz | null>(() => {
     const previous = readSavedQuiz();
-    return previous?.response.matchingVersion === '2' ? previous : null;
+    return previous?.response.matchingVersion === '2' && previous.revision === RESULT_REVISION ? previous : null;
   });
   const [answers, setAnswers] = useState<QuizAnswers>(() => readSavedQuiz()?.answers ?? initialAnswers);
   const [validationError, setValidationError] = useState('');
@@ -49,6 +49,7 @@ export default function HomePage() {
 
   const patchAnswers = (patch: Partial<QuizAnswers>) => setAnswers((current) => ({ ...current, ...patch }));
   const storeResult = (next: SavedQuiz) => {
+    next = { ...next, revision: RESULT_REVISION };
     setSaved(next);
     try {
       sessionStorage.setItem('bank-match-quiz', JSON.stringify(next));
@@ -179,13 +180,15 @@ export default function HomePage() {
                   <tbody>
                     <tr><td>نسبة التطابق</td>{selected.map((item) => <td key={item.product.id}>{item.matchPercent}٪</td>)}</tr>
                     <tr><td>الرسم السنوي</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null ? unknown : currency(item.product.annualFeeKwd)}</td>)}</tr>
-                    <tr><td>التكلفة الصافية السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null && item.annualCost.knownNetAnnualCostKwd === 0 ? unknown : currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.complete && ' — غير مكتمل'}</td>)}</tr>
+                    <tr><td>التكلفة الصافية السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.complete ? currency(item.annualCost.knownNetAnnualCostKwd) : 'غير مكتملة'}</td>)}</tr>
+                    <tr><td>صافي الأجزاء المعلومة فقط — ليس الإجمالي</td>{selected.map((item) => <td key={item.product.id}>{!item.annualCost.complete && item.annualCost.knownNetAnnualCostKwd !== 0 ? currency(item.annualCost.knownNetAnnualCostKwd) : '—'}</td>)}</tr>
                     <tr><td>رسوم المعاملات الأجنبية</td>{selected.map((item) => <td key={item.product.id} className={item.product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{item.product.foreignTransactionFeePercent === null ? unknown : `${item.product.foreignTransactionFeePercent}٪`}</td>)}</tr>
                     <tr><td>نسب وشروط الاسترداد</td>{selected.map((item) => <td key={item.product.id}>{cashbackSummary(item.product)}</td>)}</tr>
                     <tr><td>الاسترداد السنوي المقدر</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.cashbackEstimated ? currency(item.annualCost.knownAnnualCashbackKwd) : unknown}</td>)}</tr>
                     <tr><td>الحد الأدنى للرصيد</td>{selected.map((item) => <td key={item.product.id}>{item.product.minimumBalanceKwd === null ? unknown : currency(item.product.minimumBalanceKwd)}</td>)}</tr>
                     <tr><td>مزايا السفر الموثقة</td>{selected.map((item) => <td key={item.product.id}>{item.product.features.filter((feature) => /سفر|مطار|عملات|أجنبية|قاعة|قاعات|زيارة|زيارات|تأمين/.test(feature)).join(' • ') || 'غير متاحة حاليًا'}</td>)}</tr>
                     <tr><td>اكتمال حساب التكلفة</td>{selected.map((item) => <td key={item.product.id} className={!item.annualCost.complete ? 'unknown' : ''}>{item.annualCost.complete ? 'مكتمل' : 'بيانات ناقصة'}</td>)}</tr>
+                    <tr><td>آخر تحقق من البيانات</td>{selected.map((item) => <td key={item.product.id}>{item.product.lastVerified ? new Date(item.product.lastVerified).toLocaleDateString('ar-KW') : unknown}</td>)}</tr>
                   </tbody>
                 </table></div>
               </section>}

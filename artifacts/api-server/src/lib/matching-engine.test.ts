@@ -78,6 +78,36 @@ test("lowest-fee ordering is numerical and puts unknown fees after computable co
   assert.equal(ranked[2]!.annualCost.complete, false);
 });
 
+test("a traveler selecting lower fees still gets cheaper cards before premium travel cards", () => {
+  const cards = [
+    product("premium", { annualFeeKwd: 150, foreignTransactionFeePercent: 3, features: ["12 زيارة لقاعات المطارات وتأمين سفر"] }, ["travel"]),
+    product("basic", { annualFeeKwd: 10, foreignTransactionFeePercent: 1 }, ["prepaid"]),
+    product("unknown", { annualFeeKwd: null, features: ["قاعات المطارات وتأمين سفر"] }, ["travel"]),
+  ];
+  const a: Answers = { ...profile, job: "traveler", tripsPerYear: 12, internationalMonthlySpendKwd: 200, priorities: ["travel", "low_fees"] };
+  const ranked = rankProducts(cards, a);
+  assert.deepEqual(ranked.map((r) => r.product.id), ["basic", "premium", "unknown"]);
+  assert.equal(ranked[0]!.annualCost.knownNetAnnualCostKwd, 34);
+  assert.match(ranked[0]!.recommendationText, /^وفق إنفاقك، التكلفة/);
+  assert.deepEqual(ranked.map((r) => r.reasons), rankProducts(cards, { ...a, priorities: ["low_fees", "travel"] }).map((r) => r.reasons));
+});
+
+test("missing fees are named in calculation text instead of substituting a zero fee", () => {
+  const c = annualCost(product("missing", { annualFeeKwd: null, foreignTransactionFeePercent: null }, []), { ...profile, internationalMonthlySpendKwd: 100 });
+  assert.equal(c.feesComplete, false);
+  assert.match(c.calculationNote, /رسم سنوي غير متوفر حاليًا/);
+  assert.match(c.calculationNote, /رسم عملات غير متوفر حاليًا/);
+  assert.match(c.calculationNote, /لا يمثل التكلفة النهائية/);
+  assert.doesNotMatch(c.calculationNote, /التكلفة الصافية المقدرة:/);
+});
+
+test("account costs never describe unmodeled linked-card services as zero fees", () => {
+  const c = annualCost(product("account", { productType: "account", annualFeeKwd: null }, ["account"]), profile);
+  assert.equal(c.complete, false);
+  assert.match(c.calculationNote, /رسوم خدمات الحساب والبطاقة المرتبطة غير مشمولة/);
+  assert.doesNotMatch(c.calculationNote, /0 د.ك \(لا إنفاق دولي/);
+});
+
 test("low-fee ordering uses modeled net cost and takes precedence when combined with cashback", () => {
   const ranked = rankProducts(models, { ...profile, priorities: ["cashback", "low_fees"], cashbackSpending: { dining: 600 } });
   const net = ranked.map((r) => r.annualCost.knownNetAnnualCostKwd);

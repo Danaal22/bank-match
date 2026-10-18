@@ -3,7 +3,7 @@ import { Link, useParams } from 'wouter';
 import { useGetBankProduct, getGetBankProductQueryKey } from '@workspace/api-client-react';
 import { ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
-import { cashbackSummary } from '@/components/match-card';
+import { cashbackSummary, RESULT_REVISION } from '@/components/match-card';
 
 const money = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value.toLocaleString('en-US', { maximumFractionDigits: 3 })} د.ك`;
 const percent = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value}٪`;
@@ -14,7 +14,7 @@ export default function ProductPage() {
   const [savedReasons] = useState<{ id: string; reasons: string[]; text?: string; source?: string }[]>(() => {
     try {
       const quiz = JSON.parse(sessionStorage.getItem('bank-match-quiz') ?? 'null');
-      if (quiz?.response?.matchingVersion !== '2') return [];
+      if (quiz?.response?.matchingVersion !== '2' || quiz.revision !== RESULT_REVISION) return [];
       const fit = JSON.parse(sessionStorage.getItem('bank-match-fit-reasons') ?? '[]');
       return Array.isArray(fit) ? fit.filter((item) => item && typeof item.id === 'string' && Array.isArray(item.reasons)) : [];
     }

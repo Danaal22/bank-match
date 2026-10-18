@@ -24,14 +24,22 @@ export function annualCost({ product: p, tags }: CatalogProduct, a: Answers) {
   const foreign = roundKwd(foreignNeeded ? a.internationalMonthlySpendKwd * 12 * (p.foreignTransactionFeePercent ?? 0) / 100 : 0);
   const reward = estimateCashback(p, a);
   if ((tags.includes("cashback") || p.cashbackProgram) && !reward.estimated) missing.push("عائد الكاش باك غير قابل للتقدير بالبيانات المتاحة");
+  const knownNet = roundKwd(annual + foreign - reward.annualKwd);
+  const annualTerm = p.annualFeeKwd === null ? "رسم سنوي غير متوفر حاليًا" : `${annual} د.ك`;
+  const foreignTerm = p.productType === "account" ? "رسوم خدمات الحساب والبطاقة المرتبطة غير مشمولة"
+    : !foreignNeeded ? "0 د.ك (لا إنفاق دولي بالبطاقة)"
+      : p.foreignTransactionFeePercent === null ? "رسم عملات غير متوفر حاليًا"
+        : `(${a.internationalMonthlySpendKwd} × 12 × ${p.foreignTransactionFeePercent}/100) د.ك`;
+  const rewardTerm = reward.estimated ? `${reward.annualKwd} د.ك استرداد مشروط` : "لا نخصم استردادًا غير قابل للحساب";
+  const resultTerm = missing.length ? `صافي الأجزاء المعلومة فقط: ${knownNet} د.ك؛ لا يمثل التكلفة النهائية.` : `التكلفة الصافية المقدرة: ${knownNet} د.ك.`;
   return {
     knownAnnualFeesKwd: annual,
     knownAnnualForeignFeesKwd: foreign,
     knownAnnualCashbackKwd: reward.annualKwd,
-    knownNetAnnualCostKwd: roundKwd(annual + foreign - reward.annualKwd),
+    knownNetAnnualCostKwd: knownNet,
     feesComplete, cashbackEstimated: reward.estimated, cashbackNote: reward.note,
     complete: missing.length === 0, missing,
-    calculationNote: `${annual} + (${a.internationalMonthlySpendKwd} × 12 × ${foreignNeeded && p.foreignTransactionFeePercent !== null ? `${p.foreignTransactionFeePercent}/100` : foreignNeeded ? "نسبة غير متوفرة" : "0؛ لا معاملات بطاقة دولية"}) − ${reward.annualKwd} = ${roundKwd(annual + foreign - reward.annualKwd)} د.ك. ${!feesComplete ? "هذه الأجزاء المعلومة فقط؛ المجهول مستبعد وليس مجانيًا. " : ""}سيناريو مشتريات على بطاقة واحدة مع سداد كامل وثبات الإنفاق؛ يستبعد الإصدار والتمويل والسحب النقدي وفروق الصرف. الإيداع والحد الأدنى للرصيد ليسا رسومًا.`,
+    calculationNote: `الرسم السنوي: ${annualTerm}؛ رسوم المعاملات الأجنبية: ${foreignTerm}؛ الاسترداد: ${rewardTerm}. ${resultTerm} القاعدة: الرسوم السنوية + رسوم الإنفاق الدولي − الاسترداد القابل للحساب. ${!feesComplete ? "المجهول مستبعد من المجموع المعلوم وليس مجانيًا. " : ""}سيناريو مشتريات على بطاقة واحدة مع سداد كامل وثبات الإنفاق؛ يستبعد الإصدار والتمويل والسحب النقدي وفروق الصرف. الإيداع والحد الأدنى للرصيد ليسا رسومًا.`,
   };
 }
 
@@ -61,7 +69,10 @@ function costUtility(cost: ReturnType<typeof annualCost>, a: Answers) {
 }
 
 export function rankProducts(catalog: CatalogProduct[], a: Answers) {
-  const priorities = [...new Set(a.priorities)];
+  const priorities = [...new Set(a.priorities)].sort((x, y) => {
+    const order = (p: Answers["priorities"][number]) => p === "low_fees" ? 0 : p === "cashback" ? 1 : 2;
+    return order(x) - order(y) || x.localeCompare(y);
+  });
   const eligible = catalog.filter(({ product: p, tags }) =>
     (a.bankPreference === "any" || p.shariaStatus === a.bankPreference)
     && (a.productPreference === "any" || p.productType === a.productPreference)

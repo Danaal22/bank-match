@@ -132,6 +132,16 @@ const products: CatalogEntry[] = [
     sources: source("https://burgan.com/en/documents/311/CustomerProtectionBISCBMCWorldE.pdf", "إفصاح المعلومات الأساسية الرسمي"),
   },
   {
+    ...common, id: "burgan-saving", bankId: "burgan", productNameAr: "حساب التوفير", productNameEn: "Savings Account",
+    productType: "account", category: "حساب توفير", shariaStatus: "conventional",
+    matchingTags: ["account", "saving"],
+    features: ["حساب توفير للأفراد بالدينار الكويتي", "تحتسب الفائدة على أدنى رصيد شهري وتدفع كل ثلاثة أشهر", "لا يوجد حد أدنى لاكتساب الفائدة؛ لا نفترض أن ذلك يلغي شروط الرصيد أو رسوم الخدمات"],
+    eligibility: "للأفراد فقط. إيداع فتح الحساب 100 د.ك، وليس رسومًا أو دليلًا على الحد الأدنى المستمر. لا يقبل تحويل الراتب وفق صفحة المنتج.",
+    feeNotes: "الرسم السنوي ورسوم المعاملات الأجنبية والكاش باك والحد الأدنى المستمر للرصيد غير متوفر حاليًا في البيانات المتحققة. لا نقدّر عائد الفائدة أو نفترض انعدام رسوم الخدمات.",
+    lastVerified: "2026-10-19",
+    sources: source("https://burgan.com/en/personal/accounts/saving-account/", "حساب التوفير: المزايا والأهلية والأسئلة الرسمية"),
+  },
+  {
     ...common, id: "burgan-prepaid", bankId: "burgan", productNameAr: "بطاقة ماستركارد كاش باك مسبقة الدفع", productNameEn: "Cashback Mastercard Prepaid",
     productType: "card", category: "مسبقة الدفع", shariaStatus: "conventional", annualFeeKwd: 25,
     matchingTags: ["cashback", "prepaid"],

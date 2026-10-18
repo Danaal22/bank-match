@@ -3,6 +3,7 @@ import type { Recommendation } from '@workspace/api-client-react';
 import { ChevronLeft } from 'lucide-react';
 
 export const currency = (amount: number) => `${amount.toLocaleString('en-US', { maximumFractionDigits: 3 })} د.ك`;
+export const RESULT_REVISION = 'cost-integrity-2026-10-19';
 const unknown = 'غير متوفر حاليًا';
 export const cashbackSummary = (product: Recommendation['product']) => {
   const program = product.cashbackProgram;
@@ -20,7 +21,7 @@ export function MatchCard({ recommendation, index, selected, onToggle }: {
   return (
     <article className={`panel recommendation-card ${index === 0 ? 'first' : ''}`} dir="rtl" data-testid={`card-recommendation-${product.id}`}>
       <div>
-        {index === 0 && <span className="rank">الأقرب لاحتياجك</span>}
+        {index === 0 && <span className="rank">{annualCost.feesComplete ? 'الأول حسب أولوياتك' : 'خيار بتكلفة غير مكتملة'}</span>}
         <div className="bank-top">
           <span className="bank-badge">{product.bankInitials}</span>
           <div><h3>{product.productNameAr}</h3><p>{product.bankNameAr} · {product.productType === 'card' ? 'بطاقة' : 'حساب'}</p></div>
@@ -33,6 +34,7 @@ export function MatchCard({ recommendation, index, selected, onToggle }: {
           <ul className="feature-list">{recommendation.scoreBreakdown.map((part) => <li key={part.label}>{part.label}: {part.earned} من {part.weight} نقطة</li>)}</ul>
         </details>
         <p className="hint">الاسترداد: {cashbackSummary(product)}</p>
+        <p className="hint">آخر تحقق: {product.lastVerified ? new Date(product.lastVerified).toLocaleDateString('ar-KW') : unknown}</p>
         <div className="rec-actions">
           <Link href={`/products/${product.id}`} className="text-link" data-testid={`link-product-${product.id}`}>تفاصيل المنتج <ChevronLeft size={18} /></Link>
           <label className="compare-check"><input type="checkbox" checked={selected} onChange={() => onToggle(product.id)} data-testid={`input-compare-${product.id}`} /> أضف للمقارنة</label>
@@ -40,10 +42,11 @@ export function MatchCard({ recommendation, index, selected, onToggle }: {
       </div>
       <div className={`cost-box ${incomplete ? 'partial' : ''}`}>
         <span className="cost-label">{incomplete ? 'جزء معلوم من التكلفة — وليس الإجمالي' : 'التكلفة الصافية السنوية المقدّرة'}</span>
-        <strong className="cost-number" data-testid={`text-net-cost-${product.id}`}>{product.annualFeeKwd === null && annualCost.knownNetAnnualCostKwd === 0 ? 'غير مكتملة' : currency(annualCost.knownNetAnnualCostKwd)}</strong>
+        <strong className="cost-number" data-testid={`text-net-cost-${product.id}`}>{incomplete ? 'غير مكتملة' : currency(annualCost.knownNetAnnualCostKwd)}</strong>
+        {incomplete && annualCost.knownNetAnnualCostKwd !== 0 && <span className="cost-caption">صافي الأجزاء المعلومة فقط: {currency(annualCost.knownNetAnnualCostKwd)} — وليس التكلفة النهائية.</span>}
         <span className="cost-caption">{incomplete ? `تنقصنا معلومات: ${annualCost.missing.join('، ') || 'بعض الشروط'}` : 'تقدير وفق الرسوم والفئات المعروفة؛ يخضع لشروط البنك'}</span>
         <div className="cost-breakdown"><span>رسوم سنوية</span><b>{product.annualFeeKwd === null ? unknown : currency(annualCost.knownAnnualFeesKwd)}</b></div>
-        <div className="cost-breakdown"><span>رسوم معاملات أجنبية</span><b>{annualCost.missing.some((item) => item.startsWith('رسم معاملات')) ? unknown : currency(annualCost.knownAnnualForeignFeesKwd)}</b></div>
+        <div className="cost-breakdown"><span>رسوم معاملات أجنبية</span><b>{product.productType === 'account' ? 'غير مشمولة' : annualCost.missing.some((item) => item.startsWith('رسم معاملات')) ? unknown : currency(annualCost.knownAnnualForeignFeesKwd)}</b></div>
         <div className="cost-breakdown"><span>الاسترداد السنوي المقدر</span><b>{annualCost.cashbackEstimated ? currency(annualCost.knownAnnualCashbackKwd) : 'لم يُحتسب'}</b></div>
         <details className="cost-caption" style={{ marginTop: 16 }}><summary style={{ cursor: 'pointer' }}>طريقة الحساب والافتراضات</summary><p>{annualCost.calculationNote}</p><p>{annualCost.cashbackNote}</p></details>
       </div>
