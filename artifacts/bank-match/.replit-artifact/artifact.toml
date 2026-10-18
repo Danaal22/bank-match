@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Bank Match"
+description = "موقع عربي تفاعلي يساعد مستخدمي الكويت على مقارنة البطاقات والحسابات البنكية، إكمال اختبار احتياجات شخصي، ومعرفة أفضل الخيارات وتكلفتها السنوية بوضوح."
+version = "1.0.0"
+id = "artifacts/bank-match"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23190
+
+[services.development]
+run = "pnpm --filter @workspace/bank-match run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/bank-match", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/bank-match/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23190"
+BASE_PATH = "/"

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: bank-match
+    description: Bank products and personalized recommendations for Kuwait
 paths:
   /healthz:
     get:
@@ -24,6 +26,58 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /products:
+    get:
+      operationId: listBankProducts
+      tags: [bank-match]
+      summary: List bank products
+      responses:
+        "200":
+          description: Bank products with verified and unavailable facts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BankProduct"
+  /products/{id}:
+    get:
+      operationId: getBankProduct
+      tags: [bank-match]
+      summary: Get product details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BankProduct"
+        "404":
+          description: Product not found
+  /recommendations:
+    post:
+      operationId: getBankRecommendations
+      tags: [bank-match]
+      summary: Rank products for a user's needs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizAnswers"
+      responses:
+        "200":
+          description: Best three products with transparent score and cost calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +87,173 @@ components:
           type: string
       required:
         - status
+    ProductSource:
+      type: object
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+      required: [title, url]
+    BankProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        bankNameAr:
+          type: string
+        bankNameEn:
+          type: string
+        bankWebsite:
+          type: string
+        bankInitials:
+          type: string
+        productNameAr:
+          type: string
+        productNameEn:
+          type: string
+        productType:
+          type: string
+          enum: [card, account]
+        category:
+          type: string
+        shariaStatus:
+          type: string
+          enum: [islamic, conventional, unknown]
+        annualFeeKwd:
+          type: [number, "null"]
+        foreignTransactionFeePercent:
+          type: [number, "null"]
+        cashbackPercent:
+          type: [number, "null"]
+        minimumBalanceKwd:
+          type: [number, "null"]
+        features:
+          type: array
+          items:
+            type: string
+        eligibility:
+          type: string
+        feeNotes:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSource"
+        lastVerified:
+          type: string
+          format: date
+      required:
+        - id
+        - bankNameAr
+        - bankNameEn
+        - bankWebsite
+        - bankInitials
+        - productNameAr
+        - productNameEn
+        - productType
+        - category
+        - shariaStatus
+        - annualFeeKwd
+        - foreignTransactionFeePercent
+        - cashbackPercent
+        - minimumBalanceKwd
+        - features
+        - eligibility
+        - feeNotes
+        - sources
+        - lastVerified
+    QuizAnswers:
+      type: object
+      properties:
+        job:
+          type: string
+          enum: [student, employee, traveler]
+        monthlySpendKwd:
+          type: number
+          minimum: 0
+        internationalMonthlySpendKwd:
+          type: number
+          minimum: 0
+        tripsPerYear:
+          type: integer
+          minimum: 0
+          maximum: 30
+        bankPreference:
+          type: string
+          enum: [any, islamic, conventional]
+        priorities:
+          type: array
+          items:
+            type: string
+            enum: [cashback, travel, low_fees, sharia, account, card]
+        productPreference:
+          type: string
+          enum: [any, card, account]
+      required:
+        - job
+        - monthlySpendKwd
+        - internationalMonthlySpendKwd
+        - tripsPerYear
+        - bankPreference
+        - priorities
+        - productPreference
+    AnnualCost:
+      type: object
+      properties:
+        knownAnnualFeesKwd:
+          type: number
+        knownAnnualForeignFeesKwd:
+          type: number
+        knownAnnualCashbackKwd:
+          type: number
+        knownNetAnnualCostKwd:
+          type: number
+        complete:
+          type: boolean
+        missing:
+          type: array
+          items:
+            type: string
+        calculationNote:
+          type: string
+      required:
+        - knownAnnualFeesKwd
+        - knownAnnualForeignFeesKwd
+        - knownAnnualCashbackKwd
+        - knownNetAnnualCostKwd
+        - complete
+        - missing
+        - calculationNote
+    Recommendation:
+      type: object
+      properties:
+        product:
+          $ref: "#/components/schemas/BankProduct"
+        matchPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        reasons:
+          type: array
+          items:
+            type: string
+        annualCost:
+          $ref: "#/components/schemas/AnnualCost"
+        recommendationText:
+          type: string
+      required: [product, matchPercent, reasons, annualCost, recommendationText]
+    RecommendationResponse:
+      type: object
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recommendation"
+        explanationSource:
+          type: string
+          enum: [openrouter, rules]
+        methodology:
+          type: string
+      required: [recommendations, explanationSource, methodology]
 

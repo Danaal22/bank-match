@@ -1,0 +1,1 @@
+- [Catalog integrity](catalog-integrity.md) — handling conflicting bank fees, conditional cashback, and spending assumptions without false precision.
