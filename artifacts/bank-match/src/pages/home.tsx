@@ -16,6 +16,8 @@ const initialAnswers: QuizAnswers = {
   bankPreference: 'any',
   priorities: ['low_fees', 'travel'],
   productPreference: 'any',
+  nationality: 'unknown',
+  repaymentMode: 'full',
 };
 
 const unknown = 'غير متوفر حاليًا';
@@ -30,7 +32,7 @@ function readSavedQuiz(): SavedQuiz | null {
 export default function HomePage() {
   const [saved, setSaved] = useState<SavedQuiz | null>(() => {
     const previous = readSavedQuiz();
-    return previous?.response.matchingVersion === '3' && previous.revision === RESULT_REVISION ? previous : null;
+    return previous?.response.matchingVersion === '4' && previous.revision === RESULT_REVISION ? previous : null;
   });
   const [answers, setAnswers] = useState<QuizAnswers>(() => readSavedQuiz()?.answers ?? initialAnswers);
   const [validationError, setValidationError] = useState('');
@@ -115,6 +117,7 @@ export default function HomePage() {
     setAnswers((current) => ({
       ...current,
       job: next ? 'traveler' : 'employee',
+      primaryPriority: next ? current.primaryPriority ?? 'travel' : current.primaryPriority === 'travel' ? undefined : current.primaryPriority,
       tripsPerYear: next ? Math.max(current.tripsPerYear, 4) : 2,
       internationalMonthlySpendKwd: Math.min(current.monthlySpendKwd, current.internationalMonthlySpendKwd),
       priorities: next
@@ -181,7 +184,7 @@ export default function HomePage() {
                   <tbody>
                     <tr><td>نسبة التطابق</td>{selected.map((item) => <td key={item.product.id}>{item.matchPercent}٪</td>)}</tr>
                     <tr><td>الرسم السنوي</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null ? unknown : currency(item.product.annualFeeKwd)}</td>)}</tr>
-                    <tr><td>التكلفة السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.feesComplete ? <>{currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.cashbackEstimated && ' — قبل المكافآت'}</> : 'رسوم ناقصة؛ لا إجمالي موثوق'}</td>)}</tr>
+                    <tr><td>التكلفة السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.feesComplete ? <>{currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.cashbackDeducted && ' — قبل المكافآت'}</> : 'رسوم ناقصة؛ لا إجمالي موثوق'}</td>)}</tr>
                     <tr><td>صافي الأجزاء المعلومة فقط — ليس الإجمالي</td>{selected.map((item) => <td key={item.product.id}>{!item.annualCost.feesComplete && item.annualCost.knownNetAnnualCostKwd !== 0 ? currency(item.annualCost.knownNetAnnualCostKwd) : '—'}</td>)}</tr>
                     <tr><td>رسوم المعاملات الأجنبية</td>{selected.map((item) => <td key={item.product.id} className={item.product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{item.product.foreignTransactionFeePercent === null ? unknown : `${item.product.foreignTransactionFeePercent}٪`}</td>)}</tr>
                     <tr><td>رسوم العملات السنوية وفق إنفاقك</td>{selected.map((item) => <td key={item.product.id}>{item.product.productType === 'account' ? 'غير مشمولة' : item.annualCost.missing.some((s) => s.startsWith('رسم معاملات') || s.startsWith('تكلفة عملة')) ? unknown : currency(item.annualCost.knownAnnualForeignFeesKwd)}</td>)}</tr>

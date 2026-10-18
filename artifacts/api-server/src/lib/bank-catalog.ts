@@ -2,6 +2,7 @@ import { db, banksTable, bankProductsTable } from "@workspace/db";
 import { and, eq, lt } from "drizzle-orm";
 import { reviewedCatalogChanges } from "./bank-catalog-enrichment";
 import { verifiedFeeUpdates } from "./verified-fee-updates";
+import { productVerificationUpdates } from "./product-verification";
 
 const verified = "2026-10-18";
 const banks = [
@@ -165,6 +166,11 @@ export async function seedBankCatalog(): Promise<void> {
       await tx.update(bankProductsTable)
         .set({ ...patch, lastVerified: "2026-10-19", catalogRevision: 2 })
         .where(and(eq(bankProductsTable.id, id), lt(bankProductsTable.catalogRevision, 2)));
+    }
+    for (const { id, patch } of productVerificationUpdates) {
+      await tx.update(bankProductsTable)
+        .set({ ...patch, lastVerified: "2026-10-19", catalogRevision: 4 })
+        .where(and(eq(bankProductsTable.id, id), lt(bankProductsTable.catalogRevision, 4)));
     }
   });
 }

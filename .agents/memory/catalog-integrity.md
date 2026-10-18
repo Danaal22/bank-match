@@ -21,11 +21,17 @@ Sufficiently documented recurring fees should produce a useful gross estimate ev
 
 **How to apply:** Separate missing mandatory fees from unmodeled benefits, disclose paid reload frequency and documented exemptions, and avoid claiming a final net saving when reward rules are incomplete. Foreign-currency cards still require currency and funding information even for local purchases.
 
-When users select lower fees alongside other priorities, numeric estimated-cost ordering takes precedence over the fit score. Unknown mandatory fees must not make a product appear cheaper than products with calculable fees.
+The user's explicit first priority controls ranking. If the first priority is lower fees, numeric estimated-cost ordering takes precedence over the fit score. Unknown mandatory fees must not make a product appear cheaper than products with calculable fees.
 
-**Why:** The user explicitly asked for ascending annual-cost ordering when lower fees is selected. A high preference score is not a substitute for this order.
+**Why:** The user asked for ascending cost ordering for a low-fee priority, then clarified that ranking must follow the priority they actually choose, not an automatic preference for a secondary benefit.
 
-**How to apply:** Explain the ordering policy alongside results, distinguish calculable fees from unknown rewards, and disclose assumptions behind conditional net-cost estimates. Unrequested travel benefits must not inflate the score. A cashback-only ranking is a ranking of modeled returns, not proof of the lowest total cost.
+**How to apply:** Honor an explicit first-priority choice; retain low-fee precedence only for legacy inputs without one. Explain the policy, distinguish calculable fees from unknown rewards, and disclose assumptions. Unrequested travel benefits must not inflate the score. A cashback ranking is modeled earned return, not proof of lowest cost or actual cash redemption.
+
+An unknown redemption threshold must not be treated as zero, even when a reward's earning rate and cap are known.
+
+**Why:** The user requires verified eligibility conditions and forbids interpreting unknowns as zero. A published reward-earning rule is not proof the customer can redeem the annual amount.
+
+**How to apply:** Show calculable earned rewards separately, but do not deduct them from fees unless redemption conditions support it. Keep a useful gross fee estimate instead of falsely claiming either a guaranteed net saving or wholly unknown fees.
 
 The catalog scope is 5–6 Kuwaiti banks, with both cards and accounts for each bank («لكل بنك بطاقات وحسابات»).
 

@@ -31,6 +31,10 @@ const priorityOptions: { value: QuizAnswers['priorities'][number]; label: string
 ];
 
 function validate(step: number, a: QuizAnswers): string {
+  if (step === 1) {
+    if (a.age !== undefined && (!Number.isInteger(a.age) || a.age < 0 || a.age > 120)) return 'العمر الاختياري يجب أن يكون عددًا صحيحًا بين 0 و120.';
+    if (a.monthlySalaryKwd !== undefined && (!Number.isFinite(a.monthlySalaryKwd) || a.monthlySalaryKwd < 0 || a.monthlySalaryKwd > 1_000_000)) return 'أدخل راتبًا صحيحًا أو اتركه فارغًا إذا لم ترغب بالإفصاح.';
+  }
   if (step === 2) {
     if (![a.monthlySpendKwd, a.internationalMonthlySpendKwd, a.tripsPerYear].every(Number.isFinite)) return 'أدخل أرقامًا صحيحة في جميع الحقول.';
     if (a.monthlySpendKwd < 0 || a.internationalMonthlySpendKwd < 0) return 'يجب ألا تكون المبالغ أقل من صفر.';
@@ -40,6 +44,7 @@ function validate(step: number, a: QuizAnswers): string {
     if (!Number.isInteger(a.monthlyPaidPrepaidReloads ?? 1) || (a.monthlyPaidPrepaidReloads ?? 1) < 0 || (a.monthlyPaidPrepaidReloads ?? 1) > 100) return 'عدد التعبئات المدفوعة يجب أن يكون عددًا صحيحًا بين 0 و100.';
   }
   if (step === 4 && a.priorities.length === 0) return 'اختر أولوية واحدة على الأقل لنرتّب لك الخيارات.';
+  if (step === 4 && a.primaryPriority && !a.priorities.includes(a.primaryPriority)) return 'اختر أولوية أولى ضمن الميزات المحددة.';
   if (step === 4) return cashbackInputError(a);
   return '';
 }
@@ -48,6 +53,7 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const total = stepTitles.length;
+  const primary = answers.primaryPriority ?? (answers.priorities.includes('low_fees') ? 'low_fees' : answers.priorities.includes('cashback') ? 'cashback' : [...answers.priorities].sort()[0]);
 
   const next = () => {
     const e = validate(step, answers);
@@ -61,7 +67,7 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
       if (e) { setStep(s); setError(e); return; }
     }
     setError('');
-    onSubmit(answers);
+    onSubmit({ ...answers, primaryPriority: primary });
   };
   const onKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
     if (event.key !== 'Enter') return;
@@ -105,6 +111,14 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
         </div>
       </div>}
 
+      {step === 1 && <details className="method-panel">
+        <summary>تحقق اختياري من الأهلية: العمر والراتب والجنسية</summary>
+        <p className="hint">اختياري؛ تُستخدم الإجابات لاستبعاد التعارض مع شروط منشورة، ولا تُحفظ في قاعدة بيانات المنتجات. المصروفات ليست راتبًا، وترك الحقل فارغًا لا يعني صفرًا أو تأكيد الأهلية.</p>
+        <div className="field"><label className="field-label" htmlFor="age">العمر</label><div className="input-wrap"><input id="age" type="number" min="0" max="120" step="1" value={answers.age ?? ''} onChange={e => patch({ age: e.target.value === '' ? undefined : Number(e.target.value) })} data-testid="input-age" /></div></div>
+        <div className="field"><label className="field-label" htmlFor="salary">الراتب الشهري — وليس المصروفات</label><div className="input-wrap"><input id="salary" type="number" min="0" max="1000000" step="0.001" value={answers.monthlySalaryKwd ?? ''} onChange={e => patch({ monthlySalaryKwd: e.target.value === '' ? undefined : Number(e.target.value) })} data-testid="input-salary" /><span className="input-unit">د.ك / شهر</span></div></div>
+        <div className="field"><label className="field-label" htmlFor="nationality">الجنسية</label><select id="nationality" value={answers.nationality ?? 'unknown'} onChange={e => patch({ nationality: e.target.value as QuizAnswers['nationality'] })} data-testid="select-nationality"><option value="unknown">لم أحدد / أفضل عدم الإفصاح</option><option value="kuwaiti">كويتي</option><option value="non_kuwaiti">غير كويتي</option></select></div>
+      </details>}
+
       {step === 2 && <div>
         <h2>كم تنفق تقريبًا؟</h2><p className="sub">أرقام تقريبية تكفي، والإنفاق الدولي جزء من الإجمالي وليس مبلغًا إضافيًا.</p>
         <div className="field">
@@ -125,6 +139,7 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
           <div className="input-wrap"><input id="paid-reloads" type="number" inputMode="numeric" min="0" max="100" step="1" value={answers.monthlyPaidPrepaidReloads ?? 1} onChange={(e) => patch({ monthlyPaidPrepaidReloads: num(e.target.value) })} data-testid="input-paid-reloads" /><span className="input-unit">عملية / شهر</span></div>
           <small className="hint">للبطاقات مسبقة الدفع فقط. الافتراضي عملية مدفوعة واحدة شهريًا. ضع صفرًا إذا لم تُعد التعبئة أو استخدمت طريقة معفاة موثقة؛ مثل التعبئة الإلكترونية من حسابك لدى برقان. لا نفترض أن تعبئة الوطني معفاة.</small>
         </div>
+        <div className="field"><label className="field-label" htmlFor="repayment">كيف ستسدد البطاقة الائتمانية؟</label><select id="repayment" value={answers.repaymentMode ?? 'full'} onChange={e => patch({ repaymentMode: e.target.value as QuizAnswers['repaymentMode'] })} data-testid="select-repayment"><option value="full">سداد كامل كل شهر — افتراض التقدير</option><option value="partial">سداد جزئي / تقسيط الرصيد</option><option value="unknown">غير متأكد</option></select><small className="hint">لا ينطبق على مسبقة الدفع. السداد الجزئي يحتاج بيانات الرصيد والمدة لحساب التمويل؛ لن نعتبره مجانيًا. المقارنة لسنة تجديد، لا سنة الإصدار.</small></div>
       </div>}
 
       {step === 3 && <div>
@@ -150,10 +165,11 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
         <h2>وش يهمك أكثر؟</h2><p className="sub">اختر أولوية واحدة أو أكثر.</p>
         <div className="choice-grid" role="group" aria-label="الأولويات">
           {priorityOptions.map((o) => { const on = answers.priorities.includes(o.value); return (
-            <button type="button" key={o.value} className={`choice-card ${on ? 'active' : ''}`} aria-pressed={on} onClick={() => patch({ priorities: on ? answers.priorities.filter((p) => p !== o.value) : [...answers.priorities, o.value] })} data-testid={`button-priority-${o.value}`}>
+            <button type="button" key={o.value} className={`choice-card ${on ? 'active' : ''}`} aria-pressed={on} onClick={() => patch({ priorities: on ? answers.priorities.filter((p) => p !== o.value) : [...answers.priorities, o.value], primaryPriority: on && answers.primaryPriority === o.value ? undefined : answers.primaryPriority })} data-testid={`button-priority-${o.value}`}>
               {on && <span className="tick"><Check size={14} /></span>}<b>{o.label}</b>
             </button>); })}
         </div>
+        {answers.priorities.length > 1 && <div className="field"><label className="field-label" htmlFor="primary-priority">الأولوية الأولى في ترتيب النتائج</label><select id="primary-priority" value={primary} onChange={e => patch({ primaryPriority: e.target.value as QuizAnswers['primaryPriority'] })} data-testid="select-primary-priority">{priorityOptions.filter(p => answers.priorities.includes(p.value)).map(p => <option key={p.value} value={p.value}>{p.label}</option>)}</select><small className="hint">هذه تحدد الترتيب الأساسي؛ الميزات الأخرى ثانوية. اختيار السفر أولًا لن يُستبدل بالرسوم الأقل دون اختيارك.</small></div>}
         {answers.priorities.includes('cashback') && <CashbackInputs answers={answers} patch={patch} />}
       </div>}
 

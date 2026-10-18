@@ -116,6 +116,37 @@ components:
     CashbackCategory:
       type: string
       enum: [groceries, dining, health, utilities, streaming, delivery, fuel, onlineFashion]
+    EligibilityRules:
+      type: object
+      properties:
+        minAge: { type: [integer, "null"] }
+        minSalaryKwd: { type: [number, "null"] }
+        maxSalaryKwd: { type: [number, "null"] }
+        nationality: { type: string, enum: [kuwaiti, unknown] }
+      required: [minAge, minSalaryKwd, maxSalaryKwd, nationality]
+    VerifiedFact:
+      type: object
+      properties:
+        field: { type: string }
+        value: { type: string }
+        sourceUrl: { type: string }
+        verifiedAt: { type: string }
+      required: [field, value, sourceUrl, verifiedAt]
+    ProductReview:
+      type: object
+      properties:
+        rules: { $ref: "#/components/schemas/EligibilityRules" }
+        facts:
+          type: array
+          items: { $ref: "#/components/schemas/VerifiedFact" }
+      required: [rules, facts]
+    EligibilityCheck:
+      type: object
+      properties:
+        status: { type: string, enum: [not_met, needs_confirmation, published_conditions_match] }
+        summary: { type: string }
+        notes: { type: array, items: { type: string } }
+      required: [status, summary, notes]
     CashbackSpending:
       type: object
       description: Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.
@@ -148,7 +179,7 @@ components:
         minimumMonthlySpendKwd: { type: number }
         minimumSpendBasis: { type: string, enum: [total, eligible] }
         monthlyCapKwd: { type: number }
-        minimumRedemptionKwd: { type: number }
+        minimumRedemptionKwd: { type: [number, "null"] }
         rules:
           type: array
           items: { $ref: "#/components/schemas/CashbackRule" }
@@ -202,6 +233,10 @@ components:
             type: string
         eligibility:
           type: string
+        review:
+          anyOf:
+            - $ref: "#/components/schemas/ProductReview"
+            - type: "null"
         feeNotes:
           type: string
         sources:
@@ -230,12 +265,20 @@ components:
         - minimumBalanceKwd
         - features
         - eligibility
+        - review
         - feeNotes
         - sources
         - lastVerified
     QuizAnswers:
       type: object
       properties:
+        primaryPriority:
+          type: string
+          enum: [cashback, travel, low_fees, sharia, account, card]
+        age: { type: integer, minimum: 0, maximum: 120 }
+        monthlySalaryKwd: { type: number, minimum: 0, maximum: 1000000 }
+        nationality: { type: string, enum: [unknown, kuwaiti, non_kuwaiti] }
+        repaymentMode: { type: string, enum: [full, partial, unknown] }
         job:
           type: string
           enum: [student, employee, traveler]
@@ -280,6 +323,7 @@ components:
     AnnualCost:
       type: object
       properties:
+        summary: { type: string }
         knownAnnualFeesKwd:
           type: number
         knownAnnualForeignFeesKwd:
@@ -296,6 +340,8 @@ components:
           type: boolean
         cashbackEstimated:
           type: boolean
+        cashbackDeducted:
+          type: boolean
         cashbackNote:
           type: string
         missing:
@@ -305,6 +351,7 @@ components:
         calculationNote:
           type: string
       required:
+        - summary
         - knownAnnualFeesKwd
         - knownAnnualForeignFeesKwd
         - knownAnnualOtherFeesKwd
@@ -313,6 +360,7 @@ components:
         - complete
         - feesComplete
         - cashbackEstimated
+        - cashbackDeducted
         - cashbackNote
         - missing
         - calculationNote
@@ -326,6 +374,7 @@ components:
     Recommendation:
       type: object
       properties:
+        eligibilityCheck: { $ref: "#/components/schemas/EligibilityCheck" }
         product:
           $ref: "#/components/schemas/BankProduct"
         matchPercent:
@@ -343,7 +392,7 @@ components:
         scoreBreakdown:
           type: array
           items: { $ref: "#/components/schemas/MatchComponent" }
-      required: [product, matchPercent, reasons, annualCost, recommendationText, scoreBreakdown]
+      required: [product, matchPercent, reasons, annualCost, recommendationText, scoreBreakdown, eligibilityCheck]
     RecommendationResponse:
       type: object
       properties:
@@ -358,7 +407,7 @@ components:
           type: string
         matchingVersion:
           type: string
-          enum: ["3"]
+          enum: ["4"]
         rankingPolicy:
           type: string
       required: [recommendations, explanationSource, methodology, matchingVersion, rankingPolicy]

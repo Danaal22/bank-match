@@ -28,6 +28,51 @@ export const CashbackCategory = {
   onlineFashion: 'onlineFashion',
 } as const;
 
+export type EligibilityRulesNationality = typeof EligibilityRulesNationality[keyof typeof EligibilityRulesNationality];
+
+
+export const EligibilityRulesNationality = {
+  kuwaiti: 'kuwaiti',
+  unknown: 'unknown',
+} as const;
+
+export interface EligibilityRules {
+  /** @nullable */
+  minAge: number | null;
+  /** @nullable */
+  minSalaryKwd: number | null;
+  /** @nullable */
+  maxSalaryKwd: number | null;
+  nationality: EligibilityRulesNationality;
+}
+
+export interface VerifiedFact {
+  field: string;
+  value: string;
+  sourceUrl: string;
+  verifiedAt: string;
+}
+
+export interface ProductReview {
+  rules: EligibilityRules;
+  facts: VerifiedFact[];
+}
+
+export type EligibilityCheckStatus = typeof EligibilityCheckStatus[keyof typeof EligibilityCheckStatus];
+
+
+export const EligibilityCheckStatus = {
+  not_met: 'not_met',
+  needs_confirmation: 'needs_confirmation',
+  published_conditions_match: 'published_conditions_match',
+} as const;
+
+export interface EligibilityCheck {
+  status: EligibilityCheckStatus;
+  summary: string;
+  notes: string[];
+}
+
 /**
  * Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.
  */
@@ -100,7 +145,8 @@ export interface CashbackProgram {
   minimumMonthlySpendKwd: number;
   minimumSpendBasis: CashbackProgramMinimumSpendBasis;
   monthlyCapKwd: number;
-  minimumRedemptionKwd: number;
+  /** @nullable */
+  minimumRedemptionKwd: number | null;
   rules: CashbackRule[];
   tiers: CashbackTier[];
   conditionsAr: string;
@@ -147,10 +193,41 @@ export interface BankProduct {
   minimumBalanceKwd: number | null;
   features: string[];
   eligibility: string;
+  review: ProductReview | null;
   feeNotes: string;
   sources: ProductSource[];
   lastVerified: string;
 }
+
+export type QuizAnswersPrimaryPriority = typeof QuizAnswersPrimaryPriority[keyof typeof QuizAnswersPrimaryPriority];
+
+
+export const QuizAnswersPrimaryPriority = {
+  cashback: 'cashback',
+  travel: 'travel',
+  low_fees: 'low_fees',
+  sharia: 'sharia',
+  account: 'account',
+  card: 'card',
+} as const;
+
+export type QuizAnswersNationality = typeof QuizAnswersNationality[keyof typeof QuizAnswersNationality];
+
+
+export const QuizAnswersNationality = {
+  unknown: 'unknown',
+  kuwaiti: 'kuwaiti',
+  non_kuwaiti: 'non_kuwaiti',
+} as const;
+
+export type QuizAnswersRepaymentMode = typeof QuizAnswersRepaymentMode[keyof typeof QuizAnswersRepaymentMode];
+
+
+export const QuizAnswersRepaymentMode = {
+  full: 'full',
+  partial: 'partial',
+  unknown: 'unknown',
+} as const;
 
 export type QuizAnswersJob = typeof QuizAnswersJob[keyof typeof QuizAnswersJob];
 
@@ -192,6 +269,19 @@ export const QuizAnswersProductPreference = {
 } as const;
 
 export interface QuizAnswers {
+  primaryPriority?: QuizAnswersPrimaryPriority;
+  /**
+     * @minimum 0
+     * @maximum 120
+     */
+  age?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  monthlySalaryKwd?: number;
+  nationality?: QuizAnswersNationality;
+  repaymentMode?: QuizAnswersRepaymentMode;
   job: QuizAnswersJob;
   /**
      * @minimum 0
@@ -221,6 +311,7 @@ export interface QuizAnswers {
 }
 
 export interface AnnualCost {
+  summary: string;
   knownAnnualFeesKwd: number;
   knownAnnualForeignFeesKwd: number;
   knownAnnualOtherFeesKwd: number;
@@ -229,6 +320,7 @@ export interface AnnualCost {
   complete: boolean;
   feesComplete: boolean;
   cashbackEstimated: boolean;
+  cashbackDeducted: boolean;
   cashbackNote: string;
   missing: string[];
   calculationNote: string;
@@ -241,6 +333,7 @@ export interface MatchComponent {
 }
 
 export interface Recommendation {
+  eligibilityCheck: EligibilityCheck;
   product: BankProduct;
   /**
      * @minimum 0
@@ -265,7 +358,7 @@ export type RecommendationResponseMatchingVersion = typeof RecommendationRespons
 
 
 export const RecommendationResponseMatchingVersion = {
-  NUMBER_3: '3',
+  NUMBER_4: '4',
 } as const;
 
 export interface RecommendationResponse {

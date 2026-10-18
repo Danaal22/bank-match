@@ -13,7 +13,8 @@ export interface CashbackProgram {
   minimumMonthlySpendKwd: number;
   minimumSpendBasis: CashbackProgramMinimumSpendBasis;
   monthlyCapKwd: number;
-  minimumRedemptionKwd: number;
+  /** @nullable */
+  minimumRedemptionKwd: number | null;
   rules: CashbackRule[];
   tiers: CashbackTier[];
   conditionsAr: string;

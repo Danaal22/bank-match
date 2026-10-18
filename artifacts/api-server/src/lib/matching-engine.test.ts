@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { annualCost, rankProducts, rankingPolicy, validateAnswers, type Answers, type CatalogProduct } from "./matching-engine";
 import { reviewedCatalogChanges } from "./bank-catalog-enrichment";
 import { verifiedFeeUpdates } from "./verified-fee-updates";
+import { productVerificationUpdates } from "./product-verification";
+import { evaluateEligibility } from "./eligibility";
 
 const profile: Answers = { job: "employee", monthlySpendKwd: 1000, internationalMonthlySpendKwd: 0, tripsPerYear: 0, monthlyPaidPrepaidReloads: 0, bankPreference: "any", productPreference: "card", priorities: ["cashback"] };
 function product(id: string, changes: Partial<CatalogProduct["product"]> = {}, tags: string[] = ["cashback"]): CatalogProduct {
@@ -15,12 +17,79 @@ function product(id: string, changes: Partial<CatalogProduct["product"]> = {}, t
       annualFeeKwd: 10, prepaidReloadFeeKwd: null, foreignTransactionFeePercent: 2.5, cashbackPercent: null,
       cashbackProgram: reviewed?.patch.cashbackProgram as CatalogProduct["product"]["cashbackProgram"] ?? null,
       minimumBalanceKwd: null, features: [], eligibility: "تخضع للموافقة",
+      review: null,
       feeNotes: "اختبار", sources: [{ title: "مصدر اختبار", url: "https://example.test" }],
       lastVerified: new Date("2026-10-18"), ...changes,
     }, tags,
   };
 }
 const models = [product("nbk-247", {}, ["cashback", "prepaid"]), product("burgan-world", { annualFeeKwd: 150, features: ["12 زيارة لقاعات المطارات وتأمين سفر"] }, ["cashback", "travel"]), product("cbk-signature", { annualFeeKwd: 80 }, ["cashback", "travel"])];
+
+test("explicit primary priority changes ordering even when lower fees is a secondary selection", () => {
+  const cards = [product("cheap", { annualFeeKwd: 10 }, ["card"]), product("travel", { annualFeeKwd: 150, features: ["12 زيارة لقاعات المطارات وتأمين سفر"] }, ["card"])];
+  const a: Answers = { ...profile, tripsPerYear: 6, internationalMonthlySpendKwd: 100, priorities: ["low_fees", "travel"] };
+  assert.equal(rankProducts(cards, { ...a, primaryPriority: "low_fees" })[0]!.product.id, "cheap");
+  assert.equal(rankProducts(cards, { ...a, primaryPriority: "travel" })[0]!.product.id, "travel");
+  assert.match(rankProducts(cards, { ...a, primaryPriority: "travel" })[0]!.recommendationText, /تأمين سفر/);
+  assert.ok(validateAnswers({ ...a, primaryPriority: "cashback" }));
+});
+
+test("travel explanations distinguish products even when insurance and FX rates are shared", () => {
+  const cards = [product("a", { annualFeeKwd: 25, features: ["تأمين سفر مشروط"] }), product("b", { annualFeeKwd: 150, features: ["تأمين سفر مشروط"] })];
+  const results = rankProducts(cards, { ...profile, priorities: ["travel"], primaryPriority: "travel", tripsPerYear: 6, internationalMonthlySpendKwd: 100 });
+  assert.equal(new Set(results.map(r => r.reasons[0])).size, 2);
+  assert.ok(results.every(r => r.reasons[0]!.includes(String(r.product.annualFeeKwd))));
+});
+
+test("verified salary age and nationality rules exclude conflicts, never infer salary from spending", () => {
+  const rules = (id: string) => productVerificationUpdates.find(p => p.id === id)!.patch.review;
+  const gulf = product("gulf-signature", { review: rules("gulf-signature") });
+  assert.equal(rankProducts([gulf], { ...profile, monthlySalaryKwd: 299 }).length, 0);
+  assert.equal(rankProducts([gulf], { ...profile, monthlySalaryKwd: 300 }).length, 1);
+  assert.equal(evaluateEligibility(gulf.product, profile).status, "needs_confirmation");
+  const nbk = product("nbk-247", { review: rules("nbk-247") });
+  assert.equal(rankProducts([nbk], { ...profile, age: 14 }).length, 0);
+  assert.equal(rankProducts([nbk], { ...profile, age: 15 }).length, 1);
+  const pro = product("boubyan-pro", { review: rules("boubyan-pro"), productType: "account" }, ["salary"]);
+  assert.equal(evaluateEligibility(pro.product, { ...profile, nationality: "non_kuwaiti", monthlySalaryKwd: 600 }).status, "not_met");
+  assert.equal(evaluateEligibility(pro.product, { ...profile, nationality: "kuwaiti", monthlySalaryKwd: 1500 }).status, "not_met");
+  assert.equal(evaluateEligibility(pro.product, { ...profile, nationality: "kuwaiti", monthlySalaryKwd: 1499 }).status, "published_conditions_match");
+});
+
+test("Burgan prepaid has a verified 75 monthly cap, but unknown redemption is never assumed zero", () => {
+  const model = productVerificationUpdates.find(p => p.id === "burgan-prepaid")!.patch.cashbackProgram!;
+  const card = product("burgan-prepaid", { annualFeeKwd: 25, prepaidReloadFeeKwd: 1, cashbackProgram: model }, ["prepaid", "cashback"]);
+  const c = annualCost(card, { ...profile, monthlySpendKwd: 2000, monthlyPaidPrepaidReloads: 1, cashbackSpending: { dining: 2000 } });
+  assert.equal(c.knownAnnualCashbackKwd, 900);
+  assert.equal(c.cashbackEstimated, true);
+  assert.equal(c.cashbackDeducted, false);
+  assert.equal(c.knownNetAnnualCostKwd, 37);
+  assert.equal(c.feesComplete, true);
+  assert.match(c.cashbackNote, /حد الاستبدال غير متوفر/);
+  assert.equal(annualCost(card, { ...profile, monthlySpendKwd: 50, cashbackSpending: { dining: 50 } }).cashbackEstimated, false);
+  assert.equal(annualCost(card, { ...profile, monthlySpendKwd: 49, cashbackSpending: { dining: 49 } }).knownAnnualCashbackKwd, 0);
+});
+
+test("partial repayment does not silently calculate credit financing as zero", () => {
+  const credit = product("credit");
+  assert.equal(annualCost(credit, { ...profile, repaymentMode: "partial" }).feesComplete, false);
+  assert.equal(annualCost(credit, { ...profile, repaymentMode: "unknown" }).feesComplete, false);
+  assert.equal(annualCost(credit, { ...profile, repaymentMode: "full" }).feesComplete, true);
+  assert.equal(annualCost(product("prepaid", {}, ["prepaid"]), { ...profile, repaymentMode: "partial" }).feesComplete, true);
+});
+
+test("seven reviewed products retain a date and official source for every reviewed fact", () => {
+  assert.ok(productVerificationUpdates.length >= 6);
+  for (const p of productVerificationUpdates) {
+    assert.ok(p.patch.review.facts.length >= 6);
+    assert.ok(p.patch.review.facts.every(f => f.verifiedAt === "2026-10-19" && f.sourceUrl.startsWith("https://") && f.value));
+  }
+});
+
+test("CBK restaurants are supported by the current official category list", () => {
+  const card = product("cbk-signature", { cashbackProgram: productVerificationUpdates.find(p => p.id === "cbk-signature")!.patch.cashbackProgram! });
+  assert.equal(annualCost(card, { ...profile, monthlySpendKwd: 600, cashbackSpending: { dining: 600 } }).knownAnnualCashbackKwd, 72);
+});
 
 test("annual cost uses the international subset once, and deducts only category-modeled cashback", () => {
   const c = annualCost(models[1]!, { ...profile, internationalMonthlySpendKwd: 200, cashbackSpending: { dining: 200, utilities: 100 } });
@@ -157,7 +226,7 @@ test("low-fee ordering uses modeled net cost and takes precedence when combined 
   const ranked = rankProducts(models, { ...profile, priorities: ["cashback", "low_fees"], cashbackSpending: { dining: 600 } });
   const net = ranked.map((r) => r.annualCost.knownNetAnnualCostKwd);
   assert.deepEqual(net, [...net].sort((a, b) => a - b));
-  assert.match(rankingPolicy({ ...profile, priorities: ["low_fees", "cashback"] }), /أولوية الرسوم/);
+  assert.match(rankingPolicy({ ...profile, priorities: ["low_fees", "cashback"] }), /أولويتك الأولى الرسوم/);
 });
 
 test("hard preferences remain strict and students are not offered salary accounts", () => {

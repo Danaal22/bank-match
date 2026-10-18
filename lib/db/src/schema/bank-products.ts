@@ -16,11 +16,21 @@ export type ProductSource = {
   url: string;
 };
 
+export type ProductReview = {
+  rules: {
+    minAge: number | null;
+    minSalaryKwd: number | null;
+    maxSalaryKwd: number | null;
+    nationality: "kuwaiti" | "unknown";
+  };
+  facts: { field: string; value: string; sourceUrl: string; verifiedAt: string }[];
+};
+
 export type CashbackProgram = {
   minimumMonthlySpendKwd: number;
   minimumSpendBasis: "total" | "eligible";
   monthlyCapKwd: number;
-  minimumRedemptionKwd: number;
+  minimumRedemptionKwd: number | null;
   rules: { category: "groceries" | "dining" | "health" | "utilities" | "streaming" | "delivery" | "fuel" | "onlineFashion"; ratePercent: number; monthlyCapKwd: number | null }[];
   tiers: { fromKwd: number; throughKwd: number | null; ratePercent: number }[];
   conditionsAr: string;
@@ -70,6 +80,7 @@ export const bankProductsTable = pgTable(
     }),
     features: jsonb("features").$type<string[]>().notNull().default([]),
     eligibility: text("eligibility").notNull(),
+    review: jsonb("review").$type<ProductReview>(),
     feeNotes: text("fee_notes").notNull(),
     sources: jsonb("sources").$type<ProductSource[]>().notNull().default([]),
     lastVerified: date("last_verified", { mode: "string" }).notNull(),

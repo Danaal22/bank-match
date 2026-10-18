@@ -8,10 +8,26 @@
 import type { CashbackSpending } from './cashbackSpending';
 import type { QuizAnswersBankPreference } from './quizAnswersBankPreference';
 import type { QuizAnswersJob } from './quizAnswersJob';
+import type { QuizAnswersNationality } from './quizAnswersNationality';
+import type { QuizAnswersPrimaryPriority } from './quizAnswersPrimaryPriority';
 import type { QuizAnswersPrioritiesItem } from './quizAnswersPrioritiesItem';
 import type { QuizAnswersProductPreference } from './quizAnswersProductPreference';
+import type { QuizAnswersRepaymentMode } from './quizAnswersRepaymentMode';
 
 export interface QuizAnswers {
+  primaryPriority?: QuizAnswersPrimaryPriority;
+  /**
+     * @minimum 0
+     * @maximum 120
+     */
+  age?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  monthlySalaryKwd?: number;
+  nationality?: QuizAnswersNationality;
+  repaymentMode?: QuizAnswersRepaymentMode;
   job: QuizAnswersJob;
   /**
      * @minimum 0

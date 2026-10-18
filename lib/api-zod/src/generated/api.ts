@@ -39,7 +39,7 @@ export const ListBankProductsResponseItem = zod.object({
   "minimumMonthlySpendKwd": zod.number(),
   "minimumSpendBasis": zod.enum(['total', 'eligible']),
   "monthlyCapKwd": zod.number(),
-  "minimumRedemptionKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number().nullable(),
   "rules": zod.array(zod.object({
   "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
   "ratePercent": zod.number(),
@@ -55,6 +55,20 @@ export const ListBankProductsResponseItem = zod.object({
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
+  "review": zod.union([zod.object({
+  "rules": zod.object({
+  "minAge": zod.number().int().nullable(),
+  "minSalaryKwd": zod.number().nullable(),
+  "maxSalaryKwd": zod.number().nullable(),
+  "nationality": zod.enum(['kuwaiti', 'unknown'])
+}),
+  "facts": zod.array(zod.object({
+  "field": zod.string(),
+  "value": zod.string(),
+  "sourceUrl": zod.string(),
+  "verifiedAt": zod.string()
+}))
+}),zod.null()]),
   "feeNotes": zod.string(),
   "sources": zod.array(zod.object({
   "title": zod.string(),
@@ -91,7 +105,7 @@ export const GetBankProductResponse = zod.object({
   "minimumMonthlySpendKwd": zod.number(),
   "minimumSpendBasis": zod.enum(['total', 'eligible']),
   "monthlyCapKwd": zod.number(),
-  "minimumRedemptionKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number().nullable(),
   "rules": zod.array(zod.object({
   "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
   "ratePercent": zod.number(),
@@ -107,6 +121,20 @@ export const GetBankProductResponse = zod.object({
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
+  "review": zod.union([zod.object({
+  "rules": zod.object({
+  "minAge": zod.number().int().nullable(),
+  "minSalaryKwd": zod.number().nullable(),
+  "maxSalaryKwd": zod.number().nullable(),
+  "nationality": zod.enum(['kuwaiti', 'unknown'])
+}),
+  "facts": zod.array(zod.object({
+  "field": zod.string(),
+  "value": zod.string(),
+  "sourceUrl": zod.string(),
+  "verifiedAt": zod.string()
+}))
+}),zod.null()]),
   "feeNotes": zod.string(),
   "sources": zod.array(zod.object({
   "title": zod.string(),
@@ -119,6 +147,12 @@ export const GetBankProductResponse = zod.object({
 /**
  * @summary Rank products for a user's needs
  */
+export const getBankRecommendationsBodyAgeMin = 0;
+export const getBankRecommendationsBodyAgeMax = 120;
+
+export const getBankRecommendationsBodyMonthlySalaryKwdMin = 0;
+export const getBankRecommendationsBodyMonthlySalaryKwdMax = 1000000;
+
 export const getBankRecommendationsBodyMonthlySpendKwdMin = 0;
 export const getBankRecommendationsBodyMonthlySpendKwdMax = 1000000;
 
@@ -159,6 +193,11 @@ export const getBankRecommendationsBodyCashbackSpendingOnlineFashionMax = 100000
 
 
 export const GetBankRecommendationsBody = zod.object({
+  "primaryPriority": zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card']).optional(),
+  "age": zod.number().int().min(getBankRecommendationsBodyAgeMin).max(getBankRecommendationsBodyAgeMax).optional(),
+  "monthlySalaryKwd": zod.number().min(getBankRecommendationsBodyMonthlySalaryKwdMin).max(getBankRecommendationsBodyMonthlySalaryKwdMax).optional(),
+  "nationality": zod.enum(['unknown', 'kuwaiti', 'non_kuwaiti']).optional(),
+  "repaymentMode": zod.enum(['full', 'partial', 'unknown']).optional(),
   "job": zod.enum(['student', 'employee', 'traveler']),
   "monthlySpendKwd": zod.number().min(getBankRecommendationsBodyMonthlySpendKwdMin).max(getBankRecommendationsBodyMonthlySpendKwdMax),
   "internationalMonthlySpendKwd": zod.number().min(getBankRecommendationsBodyInternationalMonthlySpendKwdMin),
@@ -186,6 +225,11 @@ export const getBankRecommendationsResponseRecommendationsItemMatchPercentMax = 
 
 export const GetBankRecommendationsResponse = zod.object({
   "recommendations": zod.array(zod.object({
+  "eligibilityCheck": zod.object({
+  "status": zod.enum(['not_met', 'needs_confirmation', 'published_conditions_match']),
+  "summary": zod.string(),
+  "notes": zod.array(zod.string())
+}),
   "product": zod.object({
   "id": zod.string(),
   "bankNameAr": zod.string(),
@@ -205,7 +249,7 @@ export const GetBankRecommendationsResponse = zod.object({
   "minimumMonthlySpendKwd": zod.number(),
   "minimumSpendBasis": zod.enum(['total', 'eligible']),
   "monthlyCapKwd": zod.number(),
-  "minimumRedemptionKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number().nullable(),
   "rules": zod.array(zod.object({
   "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
   "ratePercent": zod.number(),
@@ -221,6 +265,20 @@ export const GetBankRecommendationsResponse = zod.object({
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
+  "review": zod.union([zod.object({
+  "rules": zod.object({
+  "minAge": zod.number().int().nullable(),
+  "minSalaryKwd": zod.number().nullable(),
+  "maxSalaryKwd": zod.number().nullable(),
+  "nationality": zod.enum(['kuwaiti', 'unknown'])
+}),
+  "facts": zod.array(zod.object({
+  "field": zod.string(),
+  "value": zod.string(),
+  "sourceUrl": zod.string(),
+  "verifiedAt": zod.string()
+}))
+}),zod.null()]),
   "feeNotes": zod.string(),
   "sources": zod.array(zod.object({
   "title": zod.string(),
@@ -231,6 +289,7 @@ export const GetBankRecommendationsResponse = zod.object({
   "matchPercent": zod.number().int().min(getBankRecommendationsResponseRecommendationsItemMatchPercentMin).max(getBankRecommendationsResponseRecommendationsItemMatchPercentMax),
   "reasons": zod.array(zod.string()),
   "annualCost": zod.object({
+  "summary": zod.string(),
   "knownAnnualFeesKwd": zod.number(),
   "knownAnnualForeignFeesKwd": zod.number(),
   "knownAnnualOtherFeesKwd": zod.number(),
@@ -239,6 +298,7 @@ export const GetBankRecommendationsResponse = zod.object({
   "complete": zod.boolean(),
   "feesComplete": zod.boolean(),
   "cashbackEstimated": zod.boolean(),
+  "cashbackDeducted": zod.boolean(),
   "cashbackNote": zod.string(),
   "missing": zod.array(zod.string()),
   "calculationNote": zod.string()
@@ -252,7 +312,7 @@ export const GetBankRecommendationsResponse = zod.object({
 })),
   "explanationSource": zod.enum(['openrouter', 'rules']),
   "methodology": zod.string(),
-  "matchingVersion": zod.enum(['3']),
+  "matchingVersion": zod.enum(['4']),
   "rankingPolicy": zod.string()
 })
 
@@ -260,6 +320,12 @@ export const GetBankRecommendationsResponse = zod.object({
 /**
  * @summary Optionally enhance an already available recommendation
  */
+export const explainBankRecommendationsBodyAgeMin = 0;
+export const explainBankRecommendationsBodyAgeMax = 120;
+
+export const explainBankRecommendationsBodyMonthlySalaryKwdMin = 0;
+export const explainBankRecommendationsBodyMonthlySalaryKwdMax = 1000000;
+
 export const explainBankRecommendationsBodyMonthlySpendKwdMin = 0;
 export const explainBankRecommendationsBodyMonthlySpendKwdMax = 1000000;
 
@@ -300,6 +366,11 @@ export const explainBankRecommendationsBodyCashbackSpendingOnlineFashionMax = 10
 
 
 export const ExplainBankRecommendationsBody = zod.object({
+  "primaryPriority": zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card']).optional(),
+  "age": zod.number().int().min(explainBankRecommendationsBodyAgeMin).max(explainBankRecommendationsBodyAgeMax).optional(),
+  "monthlySalaryKwd": zod.number().min(explainBankRecommendationsBodyMonthlySalaryKwdMin).max(explainBankRecommendationsBodyMonthlySalaryKwdMax).optional(),
+  "nationality": zod.enum(['unknown', 'kuwaiti', 'non_kuwaiti']).optional(),
+  "repaymentMode": zod.enum(['full', 'partial', 'unknown']).optional(),
   "job": zod.enum(['student', 'employee', 'traveler']),
   "monthlySpendKwd": zod.number().min(explainBankRecommendationsBodyMonthlySpendKwdMin).max(explainBankRecommendationsBodyMonthlySpendKwdMax),
   "internationalMonthlySpendKwd": zod.number().min(explainBankRecommendationsBodyInternationalMonthlySpendKwdMin),
@@ -327,6 +398,11 @@ export const explainBankRecommendationsResponseRecommendationsItemMatchPercentMa
 
 export const ExplainBankRecommendationsResponse = zod.object({
   "recommendations": zod.array(zod.object({
+  "eligibilityCheck": zod.object({
+  "status": zod.enum(['not_met', 'needs_confirmation', 'published_conditions_match']),
+  "summary": zod.string(),
+  "notes": zod.array(zod.string())
+}),
   "product": zod.object({
   "id": zod.string(),
   "bankNameAr": zod.string(),
@@ -346,7 +422,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "minimumMonthlySpendKwd": zod.number(),
   "minimumSpendBasis": zod.enum(['total', 'eligible']),
   "monthlyCapKwd": zod.number(),
-  "minimumRedemptionKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number().nullable(),
   "rules": zod.array(zod.object({
   "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
   "ratePercent": zod.number(),
@@ -362,6 +438,20 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
+  "review": zod.union([zod.object({
+  "rules": zod.object({
+  "minAge": zod.number().int().nullable(),
+  "minSalaryKwd": zod.number().nullable(),
+  "maxSalaryKwd": zod.number().nullable(),
+  "nationality": zod.enum(['kuwaiti', 'unknown'])
+}),
+  "facts": zod.array(zod.object({
+  "field": zod.string(),
+  "value": zod.string(),
+  "sourceUrl": zod.string(),
+  "verifiedAt": zod.string()
+}))
+}),zod.null()]),
   "feeNotes": zod.string(),
   "sources": zod.array(zod.object({
   "title": zod.string(),
@@ -372,6 +462,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "matchPercent": zod.number().int().min(explainBankRecommendationsResponseRecommendationsItemMatchPercentMin).max(explainBankRecommendationsResponseRecommendationsItemMatchPercentMax),
   "reasons": zod.array(zod.string()),
   "annualCost": zod.object({
+  "summary": zod.string(),
   "knownAnnualFeesKwd": zod.number(),
   "knownAnnualForeignFeesKwd": zod.number(),
   "knownAnnualOtherFeesKwd": zod.number(),
@@ -380,6 +471,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "complete": zod.boolean(),
   "feesComplete": zod.boolean(),
   "cashbackEstimated": zod.boolean(),
+  "cashbackDeducted": zod.boolean(),
   "cashbackNote": zod.string(),
   "missing": zod.array(zod.string()),
   "calculationNote": zod.string()
@@ -393,7 +485,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
 })),
   "explanationSource": zod.enum(['openrouter', 'rules']),
   "methodology": zod.string(),
-  "matchingVersion": zod.enum(['3']),
+  "matchingVersion": zod.enum(['4']),
   "rankingPolicy": zod.string()
 })
 

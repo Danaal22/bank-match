@@ -4,6 +4,7 @@ import { useGetBankProduct, getGetBankProductQueryKey } from '@workspace/api-cli
 import { ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { cashbackSummary, RESULT_REVISION } from '@/components/match-card';
+import { VerifiedProductFacts } from '@/components/verified-product-facts';
 
 const money = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value.toLocaleString('en-US', { maximumFractionDigits: 3 })} د.ك`;
 const percent = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value}٪`;
@@ -14,7 +15,7 @@ export default function ProductPage() {
   const [savedReasons] = useState<{ id: string; reasons: string[]; text?: string; source?: string }[]>(() => {
     try {
       const quiz = JSON.parse(sessionStorage.getItem('bank-match-quiz') ?? 'null');
-      if (quiz?.response?.matchingVersion !== '3' || quiz.revision !== RESULT_REVISION) return [];
+      if (quiz?.response?.matchingVersion !== '4' || quiz.revision !== RESULT_REVISION) return [];
       const fit = JSON.parse(sessionStorage.getItem('bank-match-fit-reasons') ?? '[]');
       return Array.isArray(fit) ? fit.filter((item) => item && typeof item.id === 'string' && Array.isArray(item.reasons)) : [];
     }
@@ -73,6 +74,7 @@ export default function ProductPage() {
             </section>
             <section className="panel detail-section">
               <h2>مصادر وتحقق</h2>
+              <VerifiedProductFacts product={product} />
               {product.sources.length ? product.sources.map((source, index) => <a key={`${product.id}-source-${index}`} className="source-link" href={source.url} target="_blank" rel="noreferrer" data-testid={`link-source-${product.id}-${index}`}><span>{source.title}</span><ExternalLink size={14} /></a>) : <p className="unknown">لا توجد مصادر منشورة لهذا المنتج حالياً.</p>}
               <p className="verify-date">آخر تحقق من المعلومات: {product.lastVerified ? new Date(product.lastVerified).toLocaleDateString('ar-KW') : 'التاريخ غير متاح'}</p>
               <a className="text-link" href={product.bankWebsite} target="_blank" rel="noreferrer" data-testid="link-bank-website">موقع البنك الرسمي <ExternalLink size={14} /></a>

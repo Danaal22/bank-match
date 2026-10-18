@@ -7,6 +7,7 @@
  */
 
 export interface AnnualCost {
+  summary: string;
   knownAnnualFeesKwd: number;
   knownAnnualForeignFeesKwd: number;
   knownAnnualOtherFeesKwd: number;
@@ -15,6 +16,7 @@ export interface AnnualCost {
   complete: boolean;
   feesComplete: boolean;
   cashbackEstimated: boolean;
+  cashbackDeducted: boolean;
   cashbackNote: string;
   missing: string[];
   calculationNote: string;

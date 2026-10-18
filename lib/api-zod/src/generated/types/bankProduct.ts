@@ -8,6 +8,7 @@
 import type { BankProductProductType } from './bankProductProductType';
 import type { BankProductShariaStatus } from './bankProductShariaStatus';
 import type { CashbackProgram } from './cashbackProgram';
+import type { ProductReview } from './productReview';
 import type { ProductSource } from './productSource';
 
 export interface BankProduct {
@@ -34,6 +35,7 @@ export interface BankProduct {
   minimumBalanceKwd: number | null;
   features: string[];
   eligibility: string;
+  review: ProductReview | null;
   feeNotes: string;
   sources: ProductSource[];
   lastVerified: Date;

@@ -7,9 +7,11 @@
  */
 import type { AnnualCost } from './annualCost';
 import type { BankProduct } from './bankProduct';
+import type { EligibilityCheck } from './eligibilityCheck';
 import type { MatchComponent } from './matchComponent';
 
 export interface Recommendation {
+  eligibilityCheck: EligibilityCheck;
   product: BankProduct;
   /**
      * @minimum 0
