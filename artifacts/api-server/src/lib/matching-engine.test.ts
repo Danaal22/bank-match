@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { annualCost, rankProducts, rankingPolicy, validateAnswers, type Answers, type CatalogProduct } from "./matching-engine";
 import { reviewedCatalogChanges } from "./bank-catalog-enrichment";
+import { verifiedFeeUpdates } from "./verified-fee-updates";
 
-const profile: Answers = { job: "employee", monthlySpendKwd: 1000, internationalMonthlySpendKwd: 0, tripsPerYear: 0, bankPreference: "any", productPreference: "card", priorities: ["cashback"] };
+const profile: Answers = { job: "employee", monthlySpendKwd: 1000, internationalMonthlySpendKwd: 0, tripsPerYear: 0, monthlyPaidPrepaidReloads: 0, bankPreference: "any", productPreference: "card", priorities: ["cashback"] };
 function product(id: string, changes: Partial<CatalogProduct["product"]> = {}, tags: string[] = ["cashback"]): CatalogProduct {
   const reviewed = reviewedCatalogChanges.find((p) => p.id === id);
   return {
@@ -11,7 +12,7 @@ function product(id: string, changes: Partial<CatalogProduct["product"]> = {}, t
       id, bankNameAr: "بنك اختبار", bankNameEn: "Test", bankWebsite: "https://example.test",
       bankInitials: "T", productNameAr: "منتج اختبار", productNameEn: "Test product",
       productType: "card", category: "بطاقة", shariaStatus: "conventional",
-      annualFeeKwd: 10, foreignTransactionFeePercent: 2.5, cashbackPercent: null,
+      annualFeeKwd: 10, prepaidReloadFeeKwd: null, foreignTransactionFeePercent: 2.5, cashbackPercent: null,
       cashbackProgram: reviewed?.patch.cashbackProgram as CatalogProduct["product"]["cashbackProgram"] ?? null,
       minimumBalanceKwd: null, features: [], eligibility: "تخضع للموافقة",
       feeNotes: "اختبار", sources: [{ title: "مصدر اختبار", url: "https://example.test" }],
@@ -88,7 +89,7 @@ test("a traveler selecting lower fees still gets cheaper cards before premium tr
   const ranked = rankProducts(cards, a);
   assert.deepEqual(ranked.map((r) => r.product.id), ["basic", "premium", "unknown"]);
   assert.equal(ranked[0]!.annualCost.knownNetAnnualCostKwd, 34);
-  assert.match(ranked[0]!.recommendationText, /^وفق إنفاقك، التكلفة/);
+  assert.match(ranked[0]!.recommendationText, /^التكلفة التقديرية لهذه البطاقة/);
   assert.deepEqual(ranked.map((r) => r.reasons), rankProducts(cards, { ...a, priorities: ["low_fees", "travel"] }).map((r) => r.reasons));
 });
 
@@ -106,6 +107,50 @@ test("account costs never describe unmodeled linked-card services as zero fees",
   assert.equal(c.complete, false);
   assert.match(c.calculationNote, /رسوم خدمات الحساب والبطاقة المرتبطة غير مشمولة/);
   assert.doesNotMatch(c.calculationNote, /0 د.ك \(لا إنفاق دولي/);
+});
+
+test("verified paid reload fees are annualized and an unknown reward does not prevent a gross fee estimate", () => {
+  const card = product("nbk-247", { prepaidReloadFeeKwd: 1.5, foreignTransactionFeePercent: 2.75 }, ["prepaid", "cashback"]);
+  const a: Answers = { ...profile, monthlySpendKwd: 600, internationalMonthlySpendKwd: 100, monthlyPaidPrepaidReloads: 1 };
+  const cost = annualCost(card, a);
+  assert.equal(cost.knownAnnualOtherFeesKwd, 18);
+  assert.equal(cost.knownNetAnnualCostKwd, 61);
+  assert.equal(cost.feesComplete, true);
+  assert.equal(cost.cashbackEstimated, false);
+  assert.match(cost.calculationNote, /دون خصم مكافآت غير محسوبة/);
+  assert.equal(annualCost(card, { ...a, monthlyPaidPrepaidReloads: 0 }).knownNetAnnualCostKwd, 43);
+  assert.equal(annualCost(card, { ...a, monthlyPaidPrepaidReloads: 3 }).knownNetAnnualCostKwd, 97);
+  assert.equal(annualCost(product("unknown", { prepaidReloadFeeKwd: null }, ["prepaid"]), a).feesComplete, false);
+  assert.match(annualCost(card, { ...a, monthlyPaidPrepaidReloads: undefined }).calculationNote, /افتراض عملية واحدة/);
+});
+
+test("unrequested travel perks and trip counts cannot inflate a low-fee match score", () => {
+  const basic = product("basic", { annualFeeKwd: 10 }, ["card"]);
+  const perks = product("perks", { annualFeeKwd: 10, features: ["12 زيارة لقاعات المطارات وتأمين سفر"] }, ["card"]);
+  const a: Answers = { ...profile, priorities: ["low_fees"] };
+  const ranked = rankProducts([basic, perks], a);
+  assert.equal(ranked[0]!.matchPercent, ranked[1]!.matchPercent);
+  assert.deepEqual(ranked.map(r => r.matchPercent), rankProducts([basic, perks], { ...a, tripsPerYear: 20 }).map(r => r.matchPercent));
+  assert.equal(ranked[0]!.scoreBreakdown[0]!.weight, 80);
+  assert.ok(ranked.every(r => r.reasons.every(reason => !/قاعات|تأمين سفر/.test(reason))));
+});
+
+test("a foreign-currency card cannot claim a complete local-use cost without currency and funding inputs", () => {
+  const foreign = product("currency", { foreignTransactionFeePercent: null }, ["prepaid", "currency"]);
+  const c = annualCost(foreign, { ...profile, internationalMonthlySpendKwd: 0, monthlyPaidPrepaidReloads: 0 });
+  assert.equal(c.feesComplete, false);
+  assert.ok(c.missing.some(s => s.includes("حتى على الاستخدام المحلي")));
+});
+
+test("fixed official fee updates retain sources and do not turn a conditional maximum into universal cashback", () => {
+  assert.equal(verifiedFeeUpdates.find(p => p.id === "nbk-247")!.patch.foreignTransactionFeePercent, 2.75);
+  assert.equal(verifiedFeeUpdates.find(p => p.id === "boubyan-signature")!.patch.annualFeeKwd, 150);
+  assert.equal(verifiedFeeUpdates.find(p => p.id === "cbk-signature")!.patch.foreignTransactionFeePercent, 2.5);
+  const p = verifiedFeeUpdates.find(p => p.id === "burgan-prepaid")!.patch;
+  assert.equal(p.prepaidReloadFeeKwd, 1);
+  assert.equal(p.cashbackPercent, 5);
+  assert.equal(annualCost(product("burgan-prepaid", { ...p, annualFeeKwd: 25 } as Partial<CatalogProduct["product"]>, ["prepaid", "cashback"]), { ...profile, cashbackSpending: { dining: 600 } }).cashbackEstimated, false);
+  assert.ok(verifiedFeeUpdates.every(p => p.patch.sources?.length));
 });
 
 test("low-fee ordering uses modeled net cost and takes precedence when combined with cashback", () => {

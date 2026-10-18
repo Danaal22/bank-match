@@ -9,6 +9,7 @@
 export interface AnnualCost {
   knownAnnualFeesKwd: number;
   knownAnnualForeignFeesKwd: number;
+  knownAnnualOtherFeesKwd: number;
   knownAnnualCashbackKwd: number;
   knownNetAnnualCostKwd: number;
   complete: boolean;

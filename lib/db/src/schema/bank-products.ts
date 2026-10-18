@@ -50,6 +50,7 @@ export const bankProductsTable = pgTable(
     matchingTags: text("matching_tags").array().notNull().default([]),
     shariaStatus: text("sharia_status").notNull(),
     annualFeeKwd: numeric("annual_fee_kwd", { precision: 10, scale: 3, mode: "number" }),
+    prepaidReloadFeeKwd: numeric("prepaid_reload_fee_kwd", { precision: 10, scale: 3, mode: "number" }),
     foreignTransactionFeePercent: numeric("foreign_transaction_fee_percent", {
       precision: 7,
       scale: 4,

@@ -37,6 +37,7 @@ function validate(step: number, a: QuizAnswers): string {
     if (a.monthlySpendKwd > 1_000_000) return 'إجمالي الإنفاق يجب ألا يتجاوز مليون دينار شهريًا.';
     if (a.internationalMonthlySpendKwd > a.monthlySpendKwd) return 'الإنفاق الدولي جزء من إجمالي الإنفاق الشهري، ويجب ألا يتجاوزه.';
     if (!Number.isInteger(a.tripsPerYear) || a.tripsPerYear < 0 || a.tripsPerYear > 30) return 'عدد الرحلات يجب أن يكون عددًا صحيحًا بين 0 و30.';
+    if (!Number.isInteger(a.monthlyPaidPrepaidReloads ?? 1) || (a.monthlyPaidPrepaidReloads ?? 1) < 0 || (a.monthlyPaidPrepaidReloads ?? 1) > 100) return 'عدد التعبئات المدفوعة يجب أن يكون عددًا صحيحًا بين 0 و100.';
   }
   if (step === 4 && a.priorities.length === 0) return 'اختر أولوية واحدة على الأقل لنرتّب لك الخيارات.';
   if (step === 4) return cashbackInputError(a);
@@ -111,13 +112,18 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
           <div className="input-wrap"><input id="spend" type="number" inputMode="decimal" min="0" step="0.001" value={answers.monthlySpendKwd} onChange={(e) => patch({ monthlySpendKwd: num(e.target.value) })} data-testid="input-monthly-spend" /><span className="input-unit">د.ك / شهر</span></div>
         </div>
         <div className="field">
-          <label className="field-label" htmlFor="intl">منه: الإنفاق خارج الكويت</label>
+          <label className="field-label" htmlFor="intl">منه: الإنفاق خارج الكويت بعملة أجنبية</label>
           <div className="input-wrap"><input id="intl" type="number" inputMode="decimal" min="0" step="0.001" value={answers.internationalMonthlySpendKwd} onChange={(e) => patch({ internationalMonthlySpendKwd: num(e.target.value) })} data-testid="input-international-spend" /><span className="input-unit">د.ك / شهر</span></div>
-          <small className="hint">يجب ألا يزيد عن إجمالي الإنفاق أعلاه.</small>
+          <small className="hint">جزء من الإجمالي أعلاه؛ نفترض مشتريات بعملة أجنبية دون سحب نقدي. قد تختلف رسوم الدفع بالدينار خارج الكويت.</small>
         </div>
         <div className="field">
           <label className="field-label" htmlFor="trips">كم رحلة خارجية تخطط لها بالسنة؟</label>
           <div className="input-wrap"><input id="trips" type="number" inputMode="numeric" min="0" max="30" value={answers.tripsPerYear} onChange={(e) => patch({ tripsPerYear: Math.min(30, Math.max(0, num(e.target.value))) })} data-testid="input-trips-per-year" /><span className="input-unit">رحلة</span></div>
+        </div>
+        <div className="field">
+          <label className="field-label" htmlFor="paid-reloads">كم عملية إعادة تعبئة مدفوعة للبطاقة مسبقة الدفع شهريًا؟</label>
+          <div className="input-wrap"><input id="paid-reloads" type="number" inputMode="numeric" min="0" max="100" step="1" value={answers.monthlyPaidPrepaidReloads ?? 1} onChange={(e) => patch({ monthlyPaidPrepaidReloads: num(e.target.value) })} data-testid="input-paid-reloads" /><span className="input-unit">عملية / شهر</span></div>
+          <small className="hint">للبطاقات مسبقة الدفع فقط. الافتراضي عملية مدفوعة واحدة شهريًا. ضع صفرًا إذا لم تُعد التعبئة أو استخدمت طريقة معفاة موثقة؛ مثل التعبئة الإلكترونية من حسابك لدى برقان. لا نفترض أن تعبئة الوطني معفاة.</small>
         </div>
       </div>}
 

@@ -8,7 +8,7 @@ import HomePage from '@/pages/home';
 import ProductPage from '@/pages/product';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000 } } });
 
 function Router() {
   return (

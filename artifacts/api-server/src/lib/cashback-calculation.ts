@@ -7,7 +7,9 @@ export const roundKwd = (n: number) => Math.round((n + Number.EPSILON) * 1000) /
 export function estimateCashback(product: Product, answers: Answers) {
   const program = product.cashbackProgram;
   const unknown = { estimated: false, annualKwd: 0, note: "عائد نقدي قابل للحساب غير متوفر حاليًا؛ لم نفترض تحويل النقاط أو المكافآت إلى مبلغ نقدي." };
-  if (!program) return unknown;
+  if (!program) return product.cashbackPercent !== null && product.cashbackPercent > 0
+    ? { ...unknown, note: `النسبة المعلنة ${product.cashbackPercent}٪ مشروطة؛ بيانات الفئات أو السقوف اللازمة للحساب غير مكتملة. لم نطبقها على إجمالي الإنفاق ولم نخصم عائدًا.` }
+    : unknown;
   if (!answers.cashbackSpending) return { ...unknown, note: "أدخل تفصيل مصاريفك الاختياري لحساب استرداد مشروط؛ لا نطبّق النسبة الإعلانية على إجمالي الإنفاق." };
   const eligible = program.rules.reduce((sum, rule) => sum + (answers.cashbackSpending?.[rule.category] ?? 0), 0);
   const basis = program.minimumSpendBasis === "eligible" ? eligible : answers.monthlySpendKwd;

@@ -137,6 +137,8 @@ export interface BankProduct {
   /** @nullable */
   annualFeeKwd: number | null;
   /** @nullable */
+  prepaidReloadFeeKwd: number | null;
+  /** @nullable */
   foreignTransactionFeePercent: number | null;
   /** @nullable */
   cashbackPercent: number | null;
@@ -203,6 +205,11 @@ export interface QuizAnswers {
      * @maximum 30
      */
   tripsPerYear: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  monthlyPaidPrepaidReloads?: number;
   bankPreference: QuizAnswersBankPreference;
   /**
      * @minItems 1
@@ -216,6 +223,7 @@ export interface QuizAnswers {
 export interface AnnualCost {
   knownAnnualFeesKwd: number;
   knownAnnualForeignFeesKwd: number;
+  knownAnnualOtherFeesKwd: number;
   knownAnnualCashbackKwd: number;
   knownNetAnnualCostKwd: number;
   complete: boolean;
@@ -257,7 +265,7 @@ export type RecommendationResponseMatchingVersion = typeof RecommendationRespons
 
 
 export const RecommendationResponseMatchingVersion = {
-  NUMBER_2: '2',
+  NUMBER_3: '3',
 } as const;
 
 export interface RecommendationResponse {

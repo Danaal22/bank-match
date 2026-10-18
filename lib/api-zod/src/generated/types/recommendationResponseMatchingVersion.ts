@@ -10,5 +10,5 @@ export type RecommendationResponseMatchingVersion = typeof RecommendationRespons
 
 
 export const RecommendationResponseMatchingVersion = {
-  NUMBER_2: '2',
+  NUMBER_3: '3',
 } as const;

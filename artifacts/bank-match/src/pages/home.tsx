@@ -12,6 +12,7 @@ const initialAnswers: QuizAnswers = {
   monthlySpendKwd: 600,
   internationalMonthlySpendKwd: 100,
   tripsPerYear: 2,
+  monthlyPaidPrepaidReloads: 1,
   bankPreference: 'any',
   priorities: ['low_fees', 'travel'],
   productPreference: 'any',
@@ -29,7 +30,7 @@ function readSavedQuiz(): SavedQuiz | null {
 export default function HomePage() {
   const [saved, setSaved] = useState<SavedQuiz | null>(() => {
     const previous = readSavedQuiz();
-    return previous?.response.matchingVersion === '2' && previous.revision === RESULT_REVISION ? previous : null;
+    return previous?.response.matchingVersion === '3' && previous.revision === RESULT_REVISION ? previous : null;
   });
   const [answers, setAnswers] = useState<QuizAnswers>(() => readSavedQuiz()?.answers ?? initialAnswers);
   const [validationError, setValidationError] = useState('');
@@ -174,20 +175,23 @@ export default function HomePage() {
             <>
               {recs.slice(0, 3).map((item, index) => <MatchCard key={item.product.id} recommendation={item} index={index} selected={selectedIds.includes(item.product.id)} onToggle={toggleCompare} />)}
               {selected.length > 0 && <section className="panel compare-panel" dir="rtl" data-testid="section-compare">
-                <h3>مقارنة على طريقة سفرك</h3><p>الأرقام المعروفة مبنية على بيانات المصدر؛ المعلومات الناقصة لا تُحسب كأنها صفر.</p>
+                <h3>{answers.priorities.includes('travel') ? 'مقارنة الرسوم والمزايا على طريقة سفرك' : 'مقارنة المنتجات حسب أولوياتك'}</h3><p>الأرقام المعروفة مبنية على بيانات المصدر؛ المعلومات الناقصة لا تُحسب كأنها صفر. عند تعذر تقدير المكافآت نعرض تكلفة الرسوم المعروفة قبل المكافآت، لا صافي توفير مضمون.</p>
                 <div className="compare-scroll"><table className="compare-table">
                   <thead><tr><th>المنتج</th>{selected.map((item) => <th key={item.product.id}>{item.product.bankNameAr}<br />{item.product.productNameAr}</th>)}</tr></thead>
                   <tbody>
                     <tr><td>نسبة التطابق</td>{selected.map((item) => <td key={item.product.id}>{item.matchPercent}٪</td>)}</tr>
                     <tr><td>الرسم السنوي</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null ? unknown : currency(item.product.annualFeeKwd)}</td>)}</tr>
-                    <tr><td>التكلفة الصافية السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.complete ? currency(item.annualCost.knownNetAnnualCostKwd) : 'غير مكتملة'}</td>)}</tr>
-                    <tr><td>صافي الأجزاء المعلومة فقط — ليس الإجمالي</td>{selected.map((item) => <td key={item.product.id}>{!item.annualCost.complete && item.annualCost.knownNetAnnualCostKwd !== 0 ? currency(item.annualCost.knownNetAnnualCostKwd) : '—'}</td>)}</tr>
+                    <tr><td>التكلفة السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.feesComplete ? <>{currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.cashbackEstimated && ' — قبل المكافآت'}</> : 'رسوم ناقصة؛ لا إجمالي موثوق'}</td>)}</tr>
+                    <tr><td>صافي الأجزاء المعلومة فقط — ليس الإجمالي</td>{selected.map((item) => <td key={item.product.id}>{!item.annualCost.feesComplete && item.annualCost.knownNetAnnualCostKwd !== 0 ? currency(item.annualCost.knownNetAnnualCostKwd) : '—'}</td>)}</tr>
                     <tr><td>رسوم المعاملات الأجنبية</td>{selected.map((item) => <td key={item.product.id} className={item.product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{item.product.foreignTransactionFeePercent === null ? unknown : `${item.product.foreignTransactionFeePercent}٪`}</td>)}</tr>
+                    <tr><td>رسوم العملات السنوية وفق إنفاقك</td>{selected.map((item) => <td key={item.product.id}>{item.product.productType === 'account' ? 'غير مشمولة' : item.annualCost.missing.some((s) => s.startsWith('رسم معاملات') || s.startsWith('تكلفة عملة')) ? unknown : currency(item.annualCost.knownAnnualForeignFeesKwd)}</td>)}</tr>
+                    <tr><td>رسوم التعبئة المدفوعة السنوية</td>{selected.map((item) => <td key={item.product.id}>{!item.product.category.includes('مسبقة') ? 'لا ينطبق' : item.annualCost.missing.some((s) => s.startsWith('رسم إعادة')) ? unknown : currency(item.annualCost.knownAnnualOtherFeesKwd)}</td>)}</tr>
                     <tr><td>نسب وشروط الاسترداد</td>{selected.map((item) => <td key={item.product.id}>{cashbackSummary(item.product)}</td>)}</tr>
                     <tr><td>الاسترداد السنوي المقدر</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.cashbackEstimated ? currency(item.annualCost.knownAnnualCashbackKwd) : unknown}</td>)}</tr>
                     <tr><td>الحد الأدنى للرصيد</td>{selected.map((item) => <td key={item.product.id}>{item.product.minimumBalanceKwd === null ? unknown : currency(item.product.minimumBalanceKwd)}</td>)}</tr>
                     <tr><td>مزايا السفر الموثقة</td>{selected.map((item) => <td key={item.product.id}>{item.product.features.filter((feature) => /سفر|مطار|عملات|أجنبية|قاعة|قاعات|زيارة|زيارات|تأمين/.test(feature)).join(' • ') || 'غير متاحة حاليًا'}</td>)}</tr>
-                    <tr><td>اكتمال حساب التكلفة</td>{selected.map((item) => <td key={item.product.id} className={!item.annualCost.complete ? 'unknown' : ''}>{item.annualCost.complete ? 'مكتمل' : 'بيانات ناقصة'}</td>)}</tr>
+                    <tr><td>قابلية حساب الرسوم</td>{selected.map((item) => <td key={item.product.id} className={!item.annualCost.feesComplete ? 'unknown' : ''}>{item.annualCost.feesComplete ? 'رسوم قابلة للحساب وفق الافتراضات' : 'رسوم ناقصة'}</td>)}</tr>
+                    <tr><td>الرسوم الأخرى والافتراضات</td>{selected.map((item) => <td key={item.product.id}><details><summary>عرض التفاصيل</summary><p>{item.product.feeNotes}</p><p>{item.annualCost.calculationNote}</p></details></td>)}</tr>
                     <tr><td>آخر تحقق من البيانات</td>{selected.map((item) => <td key={item.product.id}>{item.product.lastVerified ? new Date(item.product.lastVerified).toLocaleDateString('ar-KW') : unknown}</td>)}</tr>
                   </tbody>
                 </table></div>

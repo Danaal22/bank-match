@@ -18,28 +18,39 @@ export function annualCost({ product: p, tags }: CatalogProduct, a: Answers) {
   if (p.annualFeeKwd === null) missing.push("الرسم السنوي غير متوفر حاليًا أو متعارض");
   const foreignNeeded = p.productType === "card" && a.internationalMonthlySpendKwd > 0;
   if (foreignNeeded && p.foreignTransactionFeePercent === null) missing.push("رسم معاملات العملات الأجنبية غير متوفر حاليًا");
+  if (tags.includes("currency") && a.monthlySpendKwd > 0) missing.push("تكلفة عملة البطاقة وتمويلها تتطلب معرفة عملة البطاقة والشراء؛ قد تنطبق حتى على الاستخدام المحلي");
   if (p.productType === "account") missing.push("رسوم خدمات الحساب والبطاقة المرتبطة غير مشمولة");
+  const reloads = a.monthlyPaidPrepaidReloads ?? 1;
+  const reloadNeeded = tags.includes("prepaid") && reloads > 0;
+  if (reloadNeeded && p.prepaidReloadFeeKwd === null) missing.push("رسم إعادة التعبئة المدفوعة غير متوفر حاليًا");
   const feesComplete = missing.length === 0;
   const annual = p.annualFeeKwd ?? 0;
   const foreign = roundKwd(foreignNeeded ? a.internationalMonthlySpendKwd * 12 * (p.foreignTransactionFeePercent ?? 0) / 100 : 0);
   const reward = estimateCashback(p, a);
+  const other = roundKwd(reloadNeeded ? reloads * 12 * (p.prepaidReloadFeeKwd ?? 0) : 0);
   if ((tags.includes("cashback") || p.cashbackProgram) && !reward.estimated) missing.push("عائد الكاش باك غير قابل للتقدير بالبيانات المتاحة");
-  const knownNet = roundKwd(annual + foreign - reward.annualKwd);
+  const knownNet = roundKwd(annual + foreign + other - reward.annualKwd);
   const annualTerm = p.annualFeeKwd === null ? "رسم سنوي غير متوفر حاليًا" : `${annual} د.ك`;
   const foreignTerm = p.productType === "account" ? "رسوم خدمات الحساب والبطاقة المرتبطة غير مشمولة"
     : !foreignNeeded ? "0 د.ك (لا إنفاق دولي بالبطاقة)"
       : p.foreignTransactionFeePercent === null ? "رسم عملات غير متوفر حاليًا"
         : `(${a.internationalMonthlySpendKwd} × 12 × ${p.foreignTransactionFeePercent}/100) د.ك`;
   const rewardTerm = reward.estimated ? `${reward.annualKwd} د.ك استرداد مشروط` : "لا نخصم استردادًا غير قابل للحساب";
-  const resultTerm = missing.length ? `صافي الأجزاء المعلومة فقط: ${knownNet} د.ك؛ لا يمثل التكلفة النهائية.` : `التكلفة الصافية المقدرة: ${knownNet} د.ك.`;
+  const reloadTerm = !tags.includes("prepaid") ? "لا تنطبق إعادة التعبئة على هذا المنتج"
+    : !reloads ? "لا تعبئات مدفوعة وفق إجابتك؛ يلزم استخدام طريقة معفاة موثقة أو عدم إعادة التعبئة"
+      : p.prepaidReloadFeeKwd === null ? "رسم إعادة التعبئة غير متوفر حاليًا"
+        : `${reloads} × 12 × ${p.prepaidReloadFeeKwd} = ${other} د.ك`;
+  const resultTerm = !feesComplete ? `صافي الأجزاء المعلومة فقط: ${knownNet} د.ك؛ لا يمثل التكلفة النهائية.`
+    : `التكلفة السنوية المقدرة ${reward.estimated ? "بعد الاسترداد المشروط" : "دون خصم مكافآت غير محسوبة"}: ${knownNet} د.ك.`;
   return {
     knownAnnualFeesKwd: annual,
     knownAnnualForeignFeesKwd: foreign,
+    knownAnnualOtherFeesKwd: other,
     knownAnnualCashbackKwd: reward.annualKwd,
     knownNetAnnualCostKwd: knownNet,
     feesComplete, cashbackEstimated: reward.estimated, cashbackNote: reward.note,
     complete: missing.length === 0, missing,
-    calculationNote: `الرسم السنوي: ${annualTerm}؛ رسوم المعاملات الأجنبية: ${foreignTerm}؛ الاسترداد: ${rewardTerm}. ${resultTerm} القاعدة: الرسوم السنوية + رسوم الإنفاق الدولي − الاسترداد القابل للحساب. ${!feesComplete ? "المجهول مستبعد من المجموع المعلوم وليس مجانيًا. " : ""}سيناريو مشتريات على بطاقة واحدة مع سداد كامل وثبات الإنفاق؛ يستبعد الإصدار والتمويل والسحب النقدي وفروق الصرف. الإيداع والحد الأدنى للرصيد ليسا رسومًا.`,
+    calculationNote: `الرسم السنوي: ${annualTerm}؛ رسوم المعاملات الأجنبية: ${foreignTerm}؛ إعادة التعبئة: ${reloadTerm}؛ الاسترداد: ${rewardTerm}. ${resultTerm} القاعدة: الرسوم السنوية + رسوم الإنفاق الدولي + التعبئة المدفوعة − الاسترداد القابل للحساب. ${!feesComplete ? "المجهول مستبعد من المجموع المعلوم وليس مجانيًا. " : ""}سيناريو مشتريات على بطاقة واحدة مع سداد كامل وثبات الإنفاق؛ يستبعد الإصدار والتمويل والسحب النقدي وفروق الصرف. عدد التعبئات المدفوعة شهريًا ${reloads}${a.monthlyPaidPrepaidReloads === undefined ? " (افتراض عملية واحدة؛ يمكنك تعديله في الاختبار)" : " وفق إجابتك"}. الإيداع والحد الأدنى للرصيد ليسا رسومًا.`,
   };
 }
 
@@ -49,7 +60,7 @@ function travelFit(p: Product, a: Answers) {
   const visits = text.match(/(\d+)\s+(?:زيارة|زيارات)/)?.[1];
   const loungeCoverage = visits ? Math.min(1, Number(visits) / Math.max(2, a.tripsPerYear * 2)) : 0.5;
   const benefits = (/(قاعة|قاعات|مطار|مطارات)/.test(text) ? (0.3 + 0.15 * frequency) * loungeCoverage : 0)
-    + (/تأمين سفر/.test(text) ? 0.2 + 0.15 * frequency : 0)
+    + (/تأمين(?: طبي)? (?:سفر|للسفر)/.test(text) ? 0.2 + 0.15 * frequency : 0)
     + (/عملات|عملة أجنبية/.test(text) ? 0.2 : 0);
   if (!a.internationalMonthlySpendKwd) return benefits;
   // Unverified FX costs never receive the same credit as a verified zero rate.
@@ -90,7 +101,7 @@ export function rankProducts(catalog: CatalogProduct[], a: Answers) {
       if (priority === "low_fees") {
         fit = costUtility(cost, a);
         reasons.set("cost", cost.feesComplete
-          ? `وفق إنفاقك، التكلفة السنوية المحسوبة ${cost.knownNetAnnualCostKwd} د.ك${cost.knownAnnualCashbackKwd ? " بعد الاسترداد المشروط" : ""}.`
+          ? `التكلفة التقديرية لهذه البطاقة نحو ${cost.knownNetAnnualCostKwd} د.ك سنويًا وفقًا لاستخدامك${cost.cashbackEstimated ? " بعد الاسترداد المشروط" : " قبل أي مكافآت غير محسوبة"}.`
           : "التكلفة غير مكتملة؛ لا يمكن اعتبار الرسوم المجهولة منخفضة.");
       } else if (priority === "cashback") {
         fit = cost.cashbackEstimated ? (bestReturn ? cost.knownAnnualCashbackKwd / bestReturn : 0) : tags.includes("cashback") ? 0.15 : 0;
@@ -98,7 +109,10 @@ export function rankProducts(catalog: CatalogProduct[], a: Answers) {
         else if (tags.includes("cashback")) reasons.set("reward", "لديه برنامج مكافآت؛ ترتيب العائد غير محسوم دون فئات إنفاق وشروط قابلة للحساب.");
       } else if (priority === "travel") {
         fit = travelFit(p, a);
-        if (fit > 0) reasons.set("travel", `${/تأمين سفر/.test(p.features.join(" ")) ? "تأمين سفر ومزايا موثقة" : "مزايا سفر موثقة"} لوتيرة ${a.tripsPerYear} رحلات؛ رسم العملات ${p.foreignTransactionFeePercent === null ? "غير متوفر حاليًا" : `${p.foreignTransactionFeePercent}٪`}.`);
+        const evidence = /تأمين(?: طبي)? (?:سفر|للسفر)/.test(p.features.join(" ")) ? "تأمين سفر مشروط"
+          : /قاعات|مطارات/.test(p.features.join(" ")) ? "دخول قاعات وفق الشروط"
+            : /عملات|عملة أجنبية/.test(p.features.join(" ")) ? "مزايا بطاقة العملات الأجنبية" : "مقارنة رسم العملات";
+        if (fit > 0) reasons.set("travel", `${evidence} مع ${a.tripsPerYear} رحلات مخططة؛ رسم العملات ${p.foreignTransactionFeePercent === null ? "غير متوفر حاليًا" : `${p.foreignTransactionFeePercent}٪`} على إنفاقك الدولي ${a.internationalMonthlySpendKwd} د.ك شهريًا.`);
       } else if (priority === "sharia") {
         fit = p.shariaStatus === "islamic" ? 1 : 0;
         if (fit) reasons.set("bank", "منتج إسلامي يتفق مع أولوية التعامل المتوافق مع الشريعة.");
@@ -106,21 +120,22 @@ export function rankProducts(catalog: CatalogProduct[], a: Answers) {
         fit = p.productType === priority ? 1 : 0;
         if (fit) reasons.set("type", p.productType === "card" ? "بطاقة تتفق مع أولوية البطاقات." : "حساب يتفق مع أولوية الحسابات.");
       }
-      add(labels[priority], 60 / Math.max(1, priorities.length), fit);
+      add(labels[priority], 80 / Math.max(1, priorities.length), fit);
     }
     const persona = a.job === "student" ? (tags.includes("prepaid") ? 1 : p.productType === "account" ? 0.8 : 0.25)
-      : a.job === "traveler" ? travelFit(p, a)
+      : a.job === "traveler" ? (priorities.includes("travel") ? travelFit(p, a) : p.productType === "card" ? 0.75 : 0.5)
         : tags.includes("salary") || tags.includes("daily") ? 1 : tags.includes("prepaid") ? 0.85 : 0.65;
-    add("نمط استخدامك", 15, persona);
+    add("نمط استخدامك", 10, persona);
     if (a.job === "student" && tags.includes("prepaid")) reasons.set("persona", "مسبقة الدفع لتحديد الميزانية، دون افتراض موافقة ائتمانية للطالب.");
     if (tags.includes("salary")) reasons.set("persona", "حساب راتب؛ يلزم تأكيد الراتب والجنسية مع البنك، فالمصروفات ليست دخلًا.");
-    add("التكلفة قياسًا بمصروفاتك", 15, costUtility(cost, a));
-    add("وتيرة السفر والاستخدام الدولي", 10, a.tripsPerYear || a.internationalMonthlySpendKwd ? travelFit(p, a) : p.productType === "account" || tags.includes("prepaid") ? 1 : 0.6);
+    add("موثوقية حساب الرسوم لاستخدامك", 10, cost.feesComplete ? 1 : 0);
     if (a.bankPreference !== "any" && !reasons.has("bank")) reasons.set("bank", `نوع البنك ${p.shariaStatus === "islamic" ? "إسلامي" : "تقليدي"} وفق تفضيلك.`);
     const uniqueReasons = [...new Set(reasons.values())].slice(0, 3);
     if (!uniqueReasons.length) uniqueReasons.push("هذا خيار للمقارنة ضمن نوع البنك والمنتج المحددين؛ مزاياه المطابقة غير كافية للجزم بأفضليته.");
     const first = uniqueReasons[0]!;
-    const caveat = cost.feesComplete ? "تخضع الأهلية والمزايا لشروط البنك." : "التكلفة جزئية وتحتاج تأكيد الرسوم من البنك.";
+    const caveat = cost.feesComplete
+      ? cost.complete ? "تقدير متكرر يخضع للأهلية وشروط البنك." : "الرسوم قابلة للحساب؛ لم نخصم مكافآت غير قابلة للتقدير."
+      : "التكلفة جزئية وتحتاج تأكيد الرسوم من البنك.";
     const totalEarned = scoreBreakdown.reduce((s, part) => s + part.earned, 0);
     const totalWeight = scoreBreakdown.reduce((s, part) => s + part.weight, 0);
     return {
@@ -154,5 +169,5 @@ export function rankingPolicy(a: Answers) {
   return "الترتيب حسب درجة المطابقة الموزونة لأهدافك ونمط استخدامك ومصروفاتك وتكرار السفر؛ لا حسب أعلى نسبة إعلانية.";
 }
 
-export const matchingMethodology = "نصفّي نوع البنك والمنتج أولًا ولا نؤكد الأهلية. الدرجة = 60 نقطة موزعة بالتساوي على الأولويات المختارة + 15 لنمط المستخدم + 15 للتكلفة قياسًا بالإنفاق + 10 لاستخدام السفر. اجمع النقاط المكتسبة في تفاصيل التطابق لمراجعة النسبة. عند جمع الرسوم الأقل والكاش باك تكون أولوية الترتيب للتكلفة. التكاليف تقديرية متكررة وليست رسوم السنة الأولى، والقيم غير المتوفرة ليست مجانية. نعرض أقل من ثلاثة إذا لم تتوفر منتجات موثقة كافية.";
+export const matchingMethodology = "نصفّي نوع البنك والمنتج أولًا ولا نؤكد الأهلية. الدرجة = 80 نقطة موزعة بالتساوي على الأولويات المختارة + 10 لنمط المستخدم + 10 لقابلية حساب الرسوم من بيانات موثقة. لا تمنح مزايا السفر نقاطًا إذا لم تحدد أولوية السفر. عند جمع الرسوم الأقل والكاش باك تكون أولوية الترتيب للتكلفة، والرسوم المجهولة لاحقًا. عدم تقدير المكافآت لا يمنع عرض تقدير الرسوم المعروفة قبل المكافآت. نحسب التعبئات المدفوعة حسب العدد المدخل (الافتراضي مرة شهريًا). التكاليف متكررة وليست رسوم السنة الأولى؛ تستبعد الإصدار والتمويل والسحب وفروق الشبكة. نعرض أقل من ثلاثة إذا لم تكف المنتجات المتاحة.";
 export type RankedProducts = ReturnType<typeof rankProducts>;

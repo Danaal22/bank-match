@@ -36,7 +36,7 @@ router.post("/recommendations", async (req, res): Promise<void> => {
   }
   const recommendations = rankProducts(await loadCatalog(), answers);
   res.json(GetBankRecommendationsResponse.parse({
-    recommendations, explanationSource: "rules", matchingVersion: "2",
+    recommendations, explanationSource: "rules", matchingVersion: "3",
     rankingPolicy: rankingPolicy(answers), methodology: matchingMethodology,
   }));
 });
@@ -56,7 +56,7 @@ router.post("/recommendation-explanations", async (req, res): Promise<void> => {
     req.log.warn("AI explanation unavailable; using the transparent rule-based explanation");
   }
   res.json(GetBankRecommendationsResponse.parse({
-    recommendations, explanationSource, matchingVersion: "2",
+    recommendations, explanationSource, matchingVersion: "3",
     rankingPolicy: rankingPolicy(answers), methodology: matchingMethodology,
   }));
 });

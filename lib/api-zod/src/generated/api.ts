@@ -32,6 +32,7 @@ export const ListBankProductsResponseItem = zod.object({
   "category": zod.string(),
   "shariaStatus": zod.enum(['islamic', 'conventional', 'unknown']),
   "annualFeeKwd": zod.number().nullable(),
+  "prepaidReloadFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
   "cashbackProgram": zod.union([zod.object({
@@ -83,6 +84,7 @@ export const GetBankProductResponse = zod.object({
   "category": zod.string(),
   "shariaStatus": zod.enum(['islamic', 'conventional', 'unknown']),
   "annualFeeKwd": zod.number().nullable(),
+  "prepaidReloadFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
   "cashbackProgram": zod.union([zod.object({
@@ -125,6 +127,9 @@ export const getBankRecommendationsBodyInternationalMonthlySpendKwdMin = 0;
 export const getBankRecommendationsBodyTripsPerYearMin = 0;
 export const getBankRecommendationsBodyTripsPerYearMax = 30;
 
+export const getBankRecommendationsBodyMonthlyPaidPrepaidReloadsMin = 0;
+export const getBankRecommendationsBodyMonthlyPaidPrepaidReloadsMax = 100;
+
 export const getBankRecommendationsBodyPrioritiesMax = 6;
 
 export const getBankRecommendationsBodyCashbackSpendingGroceriesMin = 0;
@@ -158,6 +163,7 @@ export const GetBankRecommendationsBody = zod.object({
   "monthlySpendKwd": zod.number().min(getBankRecommendationsBodyMonthlySpendKwdMin).max(getBankRecommendationsBodyMonthlySpendKwdMax),
   "internationalMonthlySpendKwd": zod.number().min(getBankRecommendationsBodyInternationalMonthlySpendKwdMin),
   "tripsPerYear": zod.number().int().min(getBankRecommendationsBodyTripsPerYearMin).max(getBankRecommendationsBodyTripsPerYearMax),
+  "monthlyPaidPrepaidReloads": zod.number().int().min(getBankRecommendationsBodyMonthlyPaidPrepaidReloadsMin).max(getBankRecommendationsBodyMonthlyPaidPrepaidReloadsMax).optional(),
   "bankPreference": zod.enum(['any', 'islamic', 'conventional']),
   "priorities": zod.array(zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card'])).min(1).max(getBankRecommendationsBodyPrioritiesMax),
   "productPreference": zod.enum(['any', 'card', 'account']),
@@ -192,6 +198,7 @@ export const GetBankRecommendationsResponse = zod.object({
   "category": zod.string(),
   "shariaStatus": zod.enum(['islamic', 'conventional', 'unknown']),
   "annualFeeKwd": zod.number().nullable(),
+  "prepaidReloadFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
   "cashbackProgram": zod.union([zod.object({
@@ -226,6 +233,7 @@ export const GetBankRecommendationsResponse = zod.object({
   "annualCost": zod.object({
   "knownAnnualFeesKwd": zod.number(),
   "knownAnnualForeignFeesKwd": zod.number(),
+  "knownAnnualOtherFeesKwd": zod.number(),
   "knownAnnualCashbackKwd": zod.number(),
   "knownNetAnnualCostKwd": zod.number(),
   "complete": zod.boolean(),
@@ -244,7 +252,7 @@ export const GetBankRecommendationsResponse = zod.object({
 })),
   "explanationSource": zod.enum(['openrouter', 'rules']),
   "methodology": zod.string(),
-  "matchingVersion": zod.enum(['2']),
+  "matchingVersion": zod.enum(['3']),
   "rankingPolicy": zod.string()
 })
 
@@ -259,6 +267,9 @@ export const explainBankRecommendationsBodyInternationalMonthlySpendKwdMin = 0;
 
 export const explainBankRecommendationsBodyTripsPerYearMin = 0;
 export const explainBankRecommendationsBodyTripsPerYearMax = 30;
+
+export const explainBankRecommendationsBodyMonthlyPaidPrepaidReloadsMin = 0;
+export const explainBankRecommendationsBodyMonthlyPaidPrepaidReloadsMax = 100;
 
 export const explainBankRecommendationsBodyPrioritiesMax = 6;
 
@@ -293,6 +304,7 @@ export const ExplainBankRecommendationsBody = zod.object({
   "monthlySpendKwd": zod.number().min(explainBankRecommendationsBodyMonthlySpendKwdMin).max(explainBankRecommendationsBodyMonthlySpendKwdMax),
   "internationalMonthlySpendKwd": zod.number().min(explainBankRecommendationsBodyInternationalMonthlySpendKwdMin),
   "tripsPerYear": zod.number().int().min(explainBankRecommendationsBodyTripsPerYearMin).max(explainBankRecommendationsBodyTripsPerYearMax),
+  "monthlyPaidPrepaidReloads": zod.number().int().min(explainBankRecommendationsBodyMonthlyPaidPrepaidReloadsMin).max(explainBankRecommendationsBodyMonthlyPaidPrepaidReloadsMax).optional(),
   "bankPreference": zod.enum(['any', 'islamic', 'conventional']),
   "priorities": zod.array(zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card'])).min(1).max(explainBankRecommendationsBodyPrioritiesMax),
   "productPreference": zod.enum(['any', 'card', 'account']),
@@ -327,6 +339,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "category": zod.string(),
   "shariaStatus": zod.enum(['islamic', 'conventional', 'unknown']),
   "annualFeeKwd": zod.number().nullable(),
+  "prepaidReloadFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
   "cashbackProgram": zod.union([zod.object({
@@ -361,6 +374,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
   "annualCost": zod.object({
   "knownAnnualFeesKwd": zod.number(),
   "knownAnnualForeignFeesKwd": zod.number(),
+  "knownAnnualOtherFeesKwd": zod.number(),
   "knownAnnualCashbackKwd": zod.number(),
   "knownNetAnnualCostKwd": zod.number(),
   "complete": zod.boolean(),
@@ -379,7 +393,7 @@ export const ExplainBankRecommendationsResponse = zod.object({
 })),
   "explanationSource": zod.enum(['openrouter', 'rules']),
   "methodology": zod.string(),
-  "matchingVersion": zod.enum(['2']),
+  "matchingVersion": zod.enum(['3']),
   "rankingPolicy": zod.string()
 })
 

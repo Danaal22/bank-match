@@ -184,6 +184,8 @@ components:
           enum: [islamic, conventional, unknown]
         annualFeeKwd:
           type: [number, "null"]
+        prepaidReloadFeeKwd:
+          type: [number, "null"]
         foreignTransactionFeePercent:
           type: [number, "null"]
         cashbackPercent:
@@ -221,6 +223,7 @@ components:
         - category
         - shariaStatus
         - annualFeeKwd
+        - prepaidReloadFeeKwd
         - foreignTransactionFeePercent
         - cashbackPercent
         - cashbackProgram
@@ -247,6 +250,10 @@ components:
           type: integer
           minimum: 0
           maximum: 30
+        monthlyPaidPrepaidReloads:
+          type: integer
+          minimum: 0
+          maximum: 100
         bankPreference:
           type: string
           enum: [any, islamic, conventional]
@@ -277,6 +284,8 @@ components:
           type: number
         knownAnnualForeignFeesKwd:
           type: number
+        knownAnnualOtherFeesKwd:
+          type: number
         knownAnnualCashbackKwd:
           type: number
         knownNetAnnualCostKwd:
@@ -298,6 +307,7 @@ components:
       required:
         - knownAnnualFeesKwd
         - knownAnnualForeignFeesKwd
+        - knownAnnualOtherFeesKwd
         - knownAnnualCashbackKwd
         - knownNetAnnualCostKwd
         - complete
@@ -348,7 +358,7 @@ components:
           type: string
         matchingVersion:
           type: string
-          enum: ["2"]
+          enum: ["3"]
         rankingPolicy:
           type: string
       required: [recommendations, explanationSource, methodology, matchingVersion, rankingPolicy]

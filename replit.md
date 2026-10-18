@@ -30,6 +30,7 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 - `artifacts/api-server/src/lib/bank-matching.ts` — database catalog loading.
 - `artifacts/api-server/src/lib/matching-engine.ts` and `cashback-calculation.ts` — pure scoring, ordering and annual-cost math.
 - `artifacts/api-server/src/lib/bank-catalog-enrichment.ts` — reviewed source-backed data updates, applied once by catalog revision.
+- `artifacts/api-server/src/lib/verified-fee-updates.ts` — reviewed tariff fees, conditional currency-card treatment, and source notes.
 - `artifacts/api-server/src/lib/recommendation-explanation.ts` — optional Arabic OpenRouter explanations with fallback.
 - `lib/db/src/schema/bank-products.ts` — banks and product records.
 - `lib/api-spec/openapi.yaml` — API contract; regenerate clients after changes.
@@ -40,11 +41,14 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 - AI is for explanatory text, not fee calculation, ranking, or invented financial facts.
 - Core recommendations never await AI. Extra explanation is requested explicitly, cached temporarily and rate/concurrency limited; unavailable AI does not block matching.
 - Optional, non-overlapping category amounts support conditional cashback scenarios. They are subsets of monthly spend, not extra spending.
+- Paid prepaid reload frequency is an explicit quiz input. Calculate verified recurring reload fees; a zero count is a user-declared usage/exemption scenario, not a claim that unknown fees are free.
+- Display calculable fees before unmodeled rewards; reserve partial-cost warnings for unknown applicable fees. Currency cards remain partial when currency/funding details are absent.
+- Catalog reads share a 30-second cache and in-flight request; failures propagate rather than serving fabricated or indefinitely stale data. Browser queries also use a finite 30-second freshness window.
 - The schema carries Arabic and English names to support later English localization; the present interface is Arabic.
 
 ## Product
 
-- Quiz: persona, total monthly spending, international subset, trips, bank type, product type, priorities.
+- Quiz: persona, total monthly spending, international subset, trips, paid prepaid reloads, bank type, product type, priorities.
 - Up to three eligible catalog matches, with a transparent preference score and known annual fees.
 - Product details, official links, verification dates, conditional benefits and missing data.
 - Traveler preset and side-by-side comparison of selected recommendations.

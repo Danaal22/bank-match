@@ -14,7 +14,7 @@ export default function ProductPage() {
   const [savedReasons] = useState<{ id: string; reasons: string[]; text?: string; source?: string }[]>(() => {
     try {
       const quiz = JSON.parse(sessionStorage.getItem('bank-match-quiz') ?? 'null');
-      if (quiz?.response?.matchingVersion !== '2' || quiz.revision !== RESULT_REVISION) return [];
+      if (quiz?.response?.matchingVersion !== '3' || quiz.revision !== RESULT_REVISION) return [];
       const fit = JSON.parse(sessionStorage.getItem('bank-match-fit-reasons') ?? '[]');
       return Array.isArray(fit) ? fit.filter((item) => item && typeof item.id === 'string' && Array.isArray(item.reasons)) : [];
     }
@@ -53,6 +53,7 @@ export default function ProductPage() {
             <section className="panel detail-section">
               <h2>الرسوم والتكاليف</h2>
               <div className="fact-row"><span>الرسوم السنوية</span><strong className={product.annualFeeKwd === null ? 'unknown' : ''}>{money(product.annualFeeKwd)}</strong></div>
+              {product.category.includes('مسبقة') && <div className="fact-row"><span>رسم إعادة التعبئة المدفوعة للعملية</span><strong>{money(product.prepaidReloadFeeKwd)}</strong></div>}
               <div className="fact-row"><span>رسوم المعاملات الأجنبية</span><strong className={product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{percent(product.foreignTransactionFeePercent)}</strong></div>
               <div className="fact-row"><span>الاسترداد النقدي</span><strong className={!product.cashbackProgram && product.cashbackPercent === null ? 'unknown' : ''}>{cashbackSummary(product)}</strong></div>
               <div className="fact-row"><span>الحد الأدنى للرصيد</span><strong className={product.minimumBalanceKwd === null ? 'unknown' : ''}>{money(product.minimumBalanceKwd)}</strong></div>

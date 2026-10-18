@@ -25,6 +25,11 @@ export interface QuizAnswers {
      * @maximum 30
      */
   tripsPerYear: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  monthlyPaidPrepaidReloads?: number;
   bankPreference: QuizAnswersBankPreference;
   /**
      * @minItems 1

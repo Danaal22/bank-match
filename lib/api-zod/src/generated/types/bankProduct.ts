@@ -24,6 +24,8 @@ export interface BankProduct {
   /** @nullable */
   annualFeeKwd: number | null;
   /** @nullable */
+  prepaidReloadFeeKwd: number | null;
+  /** @nullable */
   foreignTransactionFeePercent: number | null;
   /** @nullable */
   cashbackPercent: number | null;

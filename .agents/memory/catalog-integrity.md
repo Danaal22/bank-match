@@ -13,16 +13,28 @@ Monthly international spending is a subset of total monthly spending, not an add
 
 **Why:** A single monthly spending total does not reveal merchant categories, caps, point-redemption eligibility, or card-currency combinations.
 
-**How to apply:** Keep estimates partial when facts are missing. Do not headline a partial numeric subtotal as the final cost, or replace unknown fees with zero in the displayed formula. Deduct a conditional reward only when verified rules and explicit, non-overlapping category inputs support the estimate. Apply thresholds, caps and redemption minimums; keep deposits and minimum balances separate from fees.
+**How to apply:** If an applicable fee is unknown, keep the estimate partial and never headline a known subtotal as the final cost. If fees are sufficiently verified but rewards cannot be modeled, show the fee estimate clearly **before unmodeled rewards**, rather than calling the entire result incomplete. Deduct a conditional reward only when verified rules and explicit, non-overlapping category inputs support the estimate. Apply thresholds, caps and redemption minimums; keep deposits and minimum balances separate from fees.
+
+Sufficiently documented recurring fees should produce a useful gross estimate even when reward conversion or caps remain unknown. Paid prepaid reloads must be an explicit usage assumption, not silently omitted or presumed exempt.
+
+**Why:** The user explicitly rejected blanket “incomplete cost” displays when documented fees support an estimate. Official prepaid reload charges can change the cheapest-card order.
+
+**How to apply:** Separate missing mandatory fees from unmodeled benefits, disclose paid reload frequency and documented exemptions, and avoid claiming a final net saving when reward rules are incomplete. Foreign-currency cards still require currency and funding information even for local purchases.
 
 When users select lower fees alongside other priorities, numeric estimated-cost ordering takes precedence over the fit score. Unknown mandatory fees must not make a product appear cheaper than products with calculable fees.
 
 **Why:** The user explicitly asked for ascending annual-cost ordering when lower fees is selected. A high preference score is not a substitute for this order.
 
-**How to apply:** Explain the ordering policy alongside results, distinguish calculable fees from unknown rewards, and disclose the assumptions behind conditional net-cost estimates. A cashback-only ranking is a ranking of modeled returns, not proof of the lowest total cost.
+**How to apply:** Explain the ordering policy alongside results, distinguish calculable fees from unknown rewards, and disclose assumptions behind conditional net-cost estimates. Unrequested travel benefits must not inflate the score. A cashback-only ranking is a ranking of modeled returns, not proof of the lowest total cost.
 
 The catalog scope is 5–6 Kuwaiti banks, with both cards and accounts for each bank («لكل بنك بطاقات وحسابات»).
 
 **Why:** The user explicitly requested coverage of both product types at every included bank, not just across the catalog as a whole.
 
 **How to apply:** Check coverage per bank when adding products. Preserve unknown fees and distinguish an opening deposit from an ongoing balance requirement.
+
+Visually verify critical Arabic tariff numbers and table scope when extraction is ambiguous.
+
+**Why:** A bank tariff's extracted text misread a percentage, and account-page text placed business balance charges near individual-account terms. Both could create plausible but wrong retail estimates.
+
+**How to apply:** Check the original row and headings before recording a fee. Do not trust OCR alone or carry business-account charges over to individual accounts.
