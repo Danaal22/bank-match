@@ -1,4 +1,6 @@
 import { db, banksTable, bankProductsTable } from "@workspace/db";
+import { and, eq, lt } from "drizzle-orm";
+import { reviewedCatalogChanges } from "./bank-catalog-enrichment";
 
 const verified = "2026-10-18";
 const banks = [
@@ -143,5 +145,10 @@ export async function seedBankCatalog(): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.insert(banksTable).values(banks).onConflictDoNothing();
     await tx.insert(bankProductsTable).values(products).onConflictDoNothing();
+    for (const { id, patch } of reviewedCatalogChanges) {
+      await tx.update(bankProductsTable)
+        .set({ ...patch, lastVerified: verified, catalogRevision: 1 })
+        .where(and(eq(bankProductsTable.id, id), lt(bankProductsTable.catalogRevision, 1)));
+    }
   });
 }

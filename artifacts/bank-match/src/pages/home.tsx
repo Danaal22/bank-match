@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGetBankRecommendations, useHealthCheck, useListBankProducts } from '@workspace/api-client-react';
+import { useGetBankRecommendations, useExplainBankRecommendations, useHealthCheck, useListBankProducts } from '@workspace/api-client-react';
 import type { QuizAnswers, RecommendationResponse } from '@workspace/api-client-react';
 import { ArrowLeft, BadgeCheck, CircleHelp, Compass, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
 import { ChoiceVisual } from '@/components/choice-visual';
-import { MatchCard, currency } from '@/components/match-card';
+import { MatchCard, currency, cashbackSummary } from '@/components/match-card';
 import { QuizWizard } from '@/components/quiz-wizard';
 
 const initialAnswers: QuizAnswers = {
@@ -17,7 +17,7 @@ const initialAnswers: QuizAnswers = {
   productPreference: 'any',
 };
 
-const unknown = 'غير متاح';
+const unknown = 'غير متوفر حاليًا';
 type SavedQuiz = { answers: QuizAnswers; response: RecommendationResponse };
 function readSavedQuiz(): SavedQuiz | null {
   try {
@@ -27,20 +27,36 @@ function readSavedQuiz(): SavedQuiz | null {
 }
 
 export default function HomePage() {
-  const [saved, setSaved] = useState<SavedQuiz | null>(readSavedQuiz);
+  const [saved, setSaved] = useState<SavedQuiz | null>(() => {
+    const previous = readSavedQuiz();
+    return previous?.response.matchingVersion === '2' ? previous : null;
+  });
   const [answers, setAnswers] = useState<QuizAnswers>(() => readSavedQuiz()?.answers ?? initialAnswers);
   const [validationError, setValidationError] = useState('');
   const [travelMode, setTravelMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const resultRef = useRef<HTMLElement>(null);
   const recommendationMutation = useGetBankRecommendations();
+  const explanationMutation = useExplainBankRecommendations();
+  const [aiNotice, setAiNotice] = useState('');
+  const [aiAttempted, setAiAttempted] = useState(false);
+  const requestVersion = useRef(0);
   const health = useHealthCheck();
   const products = useListBankProducts();
-  const response = recommendationMutation.data ?? saved?.response;
+  const response = saved?.response;
   const recs = response?.recommendations ?? [];
   const selected = recs.filter((item) => selectedIds.includes(item.product.id));
 
   const patchAnswers = (patch: Partial<QuizAnswers>) => setAnswers((current) => ({ ...current, ...patch }));
+  const storeResult = (next: SavedQuiz) => {
+    setSaved(next);
+    try {
+      sessionStorage.setItem('bank-match-quiz', JSON.stringify(next));
+      sessionStorage.setItem('bank-match-fit-reasons', JSON.stringify(next.response.recommendations.map((item) => ({
+        id: item.product.id, reasons: item.reasons, text: item.recommendationText, source: next.response.explanationSource,
+      }))));
+    } catch { /* Storage is optional; matching continues. */ }
+  };
   useEffect(() => {
     document.title = 'Bank Match — قارن حسابات وبطاقات الكويت';
     document.querySelector('meta[name="description"]')?.setAttribute('content', 'اختبار شخصي لمقارنة الحسابات والبطاقات البنكية في الكويت مع رسوم موثقة وأسباب مطابقة واضحة.');
@@ -53,18 +69,42 @@ export default function HomePage() {
       return;
     }
     setValidationError('');
+    const version = ++requestVersion.current;
+    setSaved(null);
+    setAiAttempted(false);
+    setAiNotice('');
+    explanationMutation.reset();
     setAnswers(nextAnswers);
     recommendationMutation.mutate({ data: nextAnswers }, {
       onSuccess: (result) => {
+        if (version !== requestVersion.current) return;
         const nextSaved = { answers: nextAnswers, response: result };
-        setSaved(nextSaved);
+        storeResult(nextSaved);
         setSelectedIds([]);
-        try {
-          window.sessionStorage.setItem('bank-match-quiz', JSON.stringify(nextSaved));
-          window.sessionStorage.setItem('bank-match-fit-reasons', JSON.stringify(result.recommendations.map((item) => ({ id: item.product.id, reasons: item.reasons, text: item.recommendationText }))));
-        } catch { /* Browsing can continue if storage is unavailable. */ }
         window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
       },
+    });
+  };
+  const enhanceExplanation = () => {
+    if (!saved || explanationMutation.isPending || aiAttempted) return;
+    const snapshot = saved;
+    const version = requestVersion.current;
+    setAiAttempted(true);
+    setAiNotice('الشرح الإضافي اختياري؛ النتائج والحسابات جاهزة ولا تنتظر هذا الطلب.');
+    explanationMutation.mutate({ data: snapshot.answers }, {
+      onSuccess: (enhanced) => {
+        if (version !== requestVersion.current) return;
+        const fingerprint = (r: RecommendationResponse) => JSON.stringify(r.recommendations.map((item) => [item.product.id, item.matchPercent, item.annualCost]));
+        if (fingerprint(enhanced) !== fingerprint(snapshot.response)) {
+          setAiNotice('تغيرت بيانات المقارنة؛ أعد المطابقة قبل طلب شرح إضافي.');
+          return;
+        }
+        if (enhanced.explanationSource === 'openrouter') {
+          storeResult({ answers: snapshot.answers, response: { ...snapshot.response, explanationSource: 'openrouter', recommendations: snapshot.response.recommendations.map((item, i) => ({ ...item, recommendationText: enhanced.recommendations[i]!.recommendationText })) } });
+          setAiNotice('تم تحديث النص فقط؛ الترتيب والتكاليف لم تتغير.');
+        } else setAiNotice('الشرح الآلي غير متاح الآن؛ شرح قواعد المطابقة متوفر والنتائج لم تتأثر.');
+      },
+      onError: () => { if (version === requestVersion.current) setAiNotice('تعذر الاتصال بخدمة الشرح؛ احتفظنا بالنتائج والشرح الأساسي.'); },
     });
   };
   const toggleTravel = () => {
@@ -123,6 +163,12 @@ export default function HomePage() {
             <div><span className="eyebrow">النتائج حسب إجاباتك</span><h2>خيارات تستحق المقارنة</h2><p>الترتيب يعكس ملاءمة المنتج لإجاباتك، وليس ضماناً للقبول أو التوفير.</p></div>
             <span className="source-pill">مصدر التفسير: {response.explanationSource === 'openrouter' ? 'تحليل ذكي' : 'قواعد المطابقة'}</span>
           </div>
+          <p className="hint" data-testid="text-ranking-policy">{response.rankingPolicy}</p>
+          {recs.length > 0 && <div style={{ marginBottom: 24 }}>
+            <button type="button" className="btn" disabled={explanationMutation.isPending || aiAttempted || response.explanationSource === 'openrouter'} onClick={enhanceExplanation} data-testid="button-enhance-explanation">{explanationMutation.isPending ? 'نجهّز شرحًا إضافيًا...' : 'شرح إضافي بالذكاء الاصطناعي — اختياري'}</button>
+            <small className="hint">عند الطلب فقط، نرسل إجابات هذا الاختبار لخدمة شرح آلي؛ لا نرسل بيانات إلى البنوك.</small>
+            {aiNotice && <p className="hint" role="status" data-testid="status-ai-explanation">{aiNotice}</p>}
+          </div>}
           {recs.length === 0 ? <div className="panel empty-card" data-testid="status-empty"><Sparkles size={28} /><h3>ما لقينا خيارات مطابقة حالياً</h3><p>جرّب تعديل تفضيلاتك أو نوع المنتج وأعد البحث.</p><button className="btn" type="button" onClick={() => requestMatches({ ...answers, bankPreference: 'any', productPreference: 'any' })} data-testid="button-retry-broad">جرّب كل الخيارات</button></div> :
             <>
               {recs.slice(0, 3).map((item, index) => <MatchCard key={item.product.id} recommendation={item} index={index} selected={selectedIds.includes(item.product.id)} onToggle={toggleCompare} />)}
@@ -131,9 +177,13 @@ export default function HomePage() {
                 <div className="compare-scroll"><table className="compare-table">
                   <thead><tr><th>المنتج</th>{selected.map((item) => <th key={item.product.id}>{item.product.bankNameAr}<br />{item.product.productNameAr}</th>)}</tr></thead>
                   <tbody>
-                    <tr><td>الجزء المعلوم من الرسوم السنوية</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null && item.annualCost.knownNetAnnualCostKwd === 0 ? 'غير متاح' : currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.complete && ' — غير مكتمل'}</td>)}</tr>
+                    <tr><td>نسبة التطابق</td>{selected.map((item) => <td key={item.product.id}>{item.matchPercent}٪</td>)}</tr>
+                    <tr><td>الرسم السنوي</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null ? unknown : currency(item.product.annualFeeKwd)}</td>)}</tr>
+                    <tr><td>التكلفة الصافية السنوية المقدرة</td>{selected.map((item) => <td key={item.product.id}>{item.product.annualFeeKwd === null && item.annualCost.knownNetAnnualCostKwd === 0 ? unknown : currency(item.annualCost.knownNetAnnualCostKwd)}{!item.annualCost.complete && ' — غير مكتمل'}</td>)}</tr>
                     <tr><td>رسوم المعاملات الأجنبية</td>{selected.map((item) => <td key={item.product.id} className={item.product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{item.product.foreignTransactionFeePercent === null ? unknown : `${item.product.foreignTransactionFeePercent}٪`}</td>)}</tr>
-                    <tr><td>الاسترداد النقدي</td>{selected.map((item) => <td key={item.product.id} className={item.product.cashbackPercent === null ? 'unknown' : ''}>{item.product.cashbackPercent === null ? unknown : `${item.product.cashbackPercent}٪`}</td>)}</tr>
+                    <tr><td>نسب وشروط الاسترداد</td>{selected.map((item) => <td key={item.product.id}>{cashbackSummary(item.product)}</td>)}</tr>
+                    <tr><td>الاسترداد السنوي المقدر</td>{selected.map((item) => <td key={item.product.id}>{item.annualCost.cashbackEstimated ? currency(item.annualCost.knownAnnualCashbackKwd) : unknown}</td>)}</tr>
+                    <tr><td>الحد الأدنى للرصيد</td>{selected.map((item) => <td key={item.product.id}>{item.product.minimumBalanceKwd === null ? unknown : currency(item.product.minimumBalanceKwd)}</td>)}</tr>
                     <tr><td>مزايا السفر الموثقة</td>{selected.map((item) => <td key={item.product.id}>{item.product.features.filter((feature) => /سفر|مطار|عملات|أجنبية|قاعة|قاعات|زيارة|زيارات|تأمين/.test(feature)).join(' • ') || 'غير متاحة حاليًا'}</td>)}</tr>
                     <tr><td>اكتمال حساب التكلفة</td>{selected.map((item) => <td key={item.product.id} className={!item.annualCost.complete ? 'unknown' : ''}>{item.annualCost.complete ? 'مكتمل' : 'بيانات ناقصة'}</td>)}</tr>
                   </tbody>
@@ -142,7 +192,7 @@ export default function HomePage() {
               <div className="method-panel"><strong>كيف نقرأ هذه النتائج؟</strong><p>{response.methodology}</p></div>
             </>}
           <div style={{ display: 'flex', justifyContent: 'center', margin: '22px 0 35px' }}>
-            <button className="btn" type="button" onClick={() => { setSelectedIds([]); setSaved(null); recommendationMutation.reset(); try { sessionStorage.removeItem('bank-match-quiz'); } catch {} window.scrollTo({ top: 0, behavior: 'smooth' }); }} data-testid="button-start-over"><RotateCcw size={18} /> عدّل إجاباتك</button>
+            <button className="btn" type="button" onClick={() => { requestVersion.current++; setSelectedIds([]); setSaved(null); recommendationMutation.reset(); explanationMutation.reset(); setAiNotice(''); setAiAttempted(false); try { sessionStorage.removeItem('bank-match-quiz'); } catch {} window.scrollTo({ top: 0, behavior: 'smooth' }); }} data-testid="button-start-over"><RotateCcw size={18} /> عدّل إجاباتك</button>
           </div>
         </section>}
       </main>

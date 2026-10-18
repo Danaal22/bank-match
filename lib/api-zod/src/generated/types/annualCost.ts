@@ -12,6 +12,9 @@ export interface AnnualCost {
   knownAnnualCashbackKwd: number;
   knownNetAnnualCostKwd: number;
   complete: boolean;
+  feesComplete: boolean;
+  cashbackEstimated: boolean;
+  cashbackNote: string;
   missing: string[];
   calculationNote: string;
 }

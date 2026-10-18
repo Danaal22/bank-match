@@ -14,6 +14,98 @@ export interface ProductSource {
   url: string;
 }
 
+export type CashbackCategory = typeof CashbackCategory[keyof typeof CashbackCategory];
+
+
+export const CashbackCategory = {
+  groceries: 'groceries',
+  dining: 'dining',
+  health: 'health',
+  utilities: 'utilities',
+  streaming: 'streaming',
+  delivery: 'delivery',
+  fuel: 'fuel',
+  onlineFashion: 'onlineFashion',
+} as const;
+
+/**
+ * Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.
+ */
+export interface CashbackSpending {
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  groceries?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  dining?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  health?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  utilities?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  streaming?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  delivery?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  fuel?: number;
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
+  onlineFashion?: number;
+}
+
+export interface CashbackRule {
+  category: CashbackCategory;
+  ratePercent: number;
+  /** @nullable */
+  monthlyCapKwd: number | null;
+}
+
+export interface CashbackTier {
+  fromKwd: number;
+  /** @nullable */
+  throughKwd: number | null;
+  ratePercent: number;
+}
+
+export type CashbackProgramMinimumSpendBasis = typeof CashbackProgramMinimumSpendBasis[keyof typeof CashbackProgramMinimumSpendBasis];
+
+
+export const CashbackProgramMinimumSpendBasis = {
+  total: 'total',
+  eligible: 'eligible',
+} as const;
+
+export interface CashbackProgram {
+  minimumMonthlySpendKwd: number;
+  minimumSpendBasis: CashbackProgramMinimumSpendBasis;
+  monthlyCapKwd: number;
+  minimumRedemptionKwd: number;
+  rules: CashbackRule[];
+  tiers: CashbackTier[];
+  conditionsAr: string;
+}
+
 export type BankProductProductType = typeof BankProductProductType[keyof typeof BankProductProductType];
 
 
@@ -48,6 +140,7 @@ export interface BankProduct {
   foreignTransactionFeePercent: number | null;
   /** @nullable */
   cashbackPercent: number | null;
+  cashbackProgram: CashbackProgram | null;
   /** @nullable */
   minimumBalanceKwd: number | null;
   features: string[];
@@ -98,7 +191,10 @@ export const QuizAnswersProductPreference = {
 
 export interface QuizAnswers {
   job: QuizAnswersJob;
-  /** @minimum 0 */
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
   monthlySpendKwd: number;
   /** @minimum 0 */
   internationalMonthlySpendKwd: number;
@@ -108,8 +204,13 @@ export interface QuizAnswers {
      */
   tripsPerYear: number;
   bankPreference: QuizAnswersBankPreference;
+  /**
+     * @minItems 1
+     * @maxItems 6
+     */
   priorities: QuizAnswersPrioritiesItem[];
   productPreference: QuizAnswersProductPreference;
+  cashbackSpending?: CashbackSpending;
 }
 
 export interface AnnualCost {
@@ -118,8 +219,17 @@ export interface AnnualCost {
   knownAnnualCashbackKwd: number;
   knownNetAnnualCostKwd: number;
   complete: boolean;
+  feesComplete: boolean;
+  cashbackEstimated: boolean;
+  cashbackNote: string;
   missing: string[];
   calculationNote: string;
+}
+
+export interface MatchComponent {
+  label: string;
+  weight: number;
+  earned: number;
 }
 
 export interface Recommendation {
@@ -132,6 +242,7 @@ export interface Recommendation {
   reasons: string[];
   annualCost: AnnualCost;
   recommendationText: string;
+  scoreBreakdown: MatchComponent[];
 }
 
 export type RecommendationResponseExplanationSource = typeof RecommendationResponseExplanationSource[keyof typeof RecommendationResponseExplanationSource];
@@ -142,9 +253,18 @@ export const RecommendationResponseExplanationSource = {
   rules: 'rules',
 } as const;
 
+export type RecommendationResponseMatchingVersion = typeof RecommendationResponseMatchingVersion[keyof typeof RecommendationResponseMatchingVersion];
+
+
+export const RecommendationResponseMatchingVersion = {
+  NUMBER_2: '2',
+} as const;
+
 export interface RecommendationResponse {
   recommendations: Recommendation[];
   explanationSource: RecommendationResponseExplanationSource;
   methodology: string;
+  matchingVersion: RecommendationResponseMatchingVersion;
+  rankingPolicy: string;
 }
 

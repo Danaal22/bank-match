@@ -3,15 +3,21 @@ import { Link, useParams } from 'wouter';
 import { useGetBankProduct, getGetBankProductQueryKey } from '@workspace/api-client-react';
 import { ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/site-header';
+import { cashbackSummary } from '@/components/match-card';
 
-const money = (value: number | null) => value === null ? 'غير متاح' : `${value.toLocaleString('en-US', { maximumFractionDigits: 2 })} د.ك`;
-const percent = (value: number | null) => value === null ? 'غير متاح' : `${value}٪`;
+const money = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value.toLocaleString('en-US', { maximumFractionDigits: 3 })} د.ك`;
+const percent = (value: number | null) => value === null ? 'غير متوفر حاليًا' : `${value}٪`;
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? '';
-  const [savedReasons] = useState<{ id: string; reasons: string[]; text?: string }[]>(() => {
-    try { return JSON.parse(window.sessionStorage.getItem('bank-match-fit-reasons') ?? '[]') as { id: string; reasons: string[]; text?: string }[]; }
+  const [savedReasons] = useState<{ id: string; reasons: string[]; text?: string; source?: string }[]>(() => {
+    try {
+      const quiz = JSON.parse(sessionStorage.getItem('bank-match-quiz') ?? 'null');
+      if (quiz?.response?.matchingVersion !== '2') return [];
+      const fit = JSON.parse(sessionStorage.getItem('bank-match-fit-reasons') ?? '[]');
+      return Array.isArray(fit) ? fit.filter((item) => item && typeof item.id === 'string' && Array.isArray(item.reasons)) : [];
+    }
     catch { return []; }
   });
   const reasons = savedReasons.find((item) => item.id === id)?.reasons;
@@ -48,8 +54,9 @@ export default function ProductPage() {
               <h2>الرسوم والتكاليف</h2>
               <div className="fact-row"><span>الرسوم السنوية</span><strong className={product.annualFeeKwd === null ? 'unknown' : ''}>{money(product.annualFeeKwd)}</strong></div>
               <div className="fact-row"><span>رسوم المعاملات الأجنبية</span><strong className={product.foreignTransactionFeePercent === null ? 'unknown' : ''}>{percent(product.foreignTransactionFeePercent)}</strong></div>
-              <div className="fact-row"><span>الاسترداد النقدي</span><strong className={product.cashbackPercent === null ? 'unknown' : ''}>{percent(product.cashbackPercent)}</strong></div>
+              <div className="fact-row"><span>الاسترداد النقدي</span><strong className={!product.cashbackProgram && product.cashbackPercent === null ? 'unknown' : ''}>{cashbackSummary(product)}</strong></div>
               <div className="fact-row"><span>الحد الأدنى للرصيد</span><strong className={product.minimumBalanceKwd === null ? 'unknown' : ''}>{money(product.minimumBalanceKwd)}</strong></div>
+              {product.cashbackProgram && <details className="method-panel"><summary>الفئات والشرائح وشروط الكاش باك</summary><p>{product.cashbackProgram.conditionsAr}</p></details>}
               <p className="legal-note">{product.feeNotes || 'لم تتوفر ملاحظات إضافية عن الرسوم. تحقّق من جدول الرسوم لدى البنك.'}</p>
             </section>
             <section className="panel detail-section">
@@ -59,7 +66,7 @@ export default function ProductPage() {
             </section>
             <section className="panel detail-section">
               <h2>لماذا قد يناسبك؟</h2>
-              {savedReasons.find((item) => item.id === id)?.text && <p className="legal-note">{savedReasons.find((item) => item.id === id)?.text}</p>}
+              {savedReasons.find((item) => item.id === id)?.source === 'openrouter' && <details className="method-panel"><summary>شرح إضافي بالذكاء الاصطناعي</summary><p>{savedReasons.find((item) => item.id === id)?.text}</p></details>}
               {reasons?.length ? <ul className="feature-list">{reasons.map((reason, index) => <li key={`${product.id}-fit-${index}`}>{reason}</li>)}</ul> : <p style={{ margin: 0 }}>تظهر ملاءمة هذا المنتج ضمن المطابقة بناءً على نوعه ومعلوماته المتاحة. طابق مزاياه ورسومه مع إنفاقك واحتياجك، ولا تعتبر النتيجة ضماناً للتوفير أو القبول.</p>}
               <p className="legal-note">التكلفة الفعلية تعتمد على استخدامك وشروط البنك. أي قيمة غير متاحة لم تُفترض صفراً ولم تُقدّر.</p>
             </section>

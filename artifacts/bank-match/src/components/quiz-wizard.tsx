@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import type { QuizAnswers } from '@workspace/api-client-react';
 import { ArrowRight, ArrowLeft, Check, Plane } from 'lucide-react';
+import { CashbackInputs, cashbackInputError } from './cashback-inputs';
 
 type Props = {
   answers: QuizAnswers;
@@ -33,10 +34,12 @@ function validate(step: number, a: QuizAnswers): string {
   if (step === 2) {
     if (![a.monthlySpendKwd, a.internationalMonthlySpendKwd, a.tripsPerYear].every(Number.isFinite)) return 'أدخل أرقامًا صحيحة في جميع الحقول.';
     if (a.monthlySpendKwd < 0 || a.internationalMonthlySpendKwd < 0) return 'يجب ألا تكون المبالغ أقل من صفر.';
+    if (a.monthlySpendKwd > 1_000_000) return 'إجمالي الإنفاق يجب ألا يتجاوز مليون دينار شهريًا.';
     if (a.internationalMonthlySpendKwd > a.monthlySpendKwd) return 'الإنفاق الدولي جزء من إجمالي الإنفاق الشهري، ويجب ألا يتجاوزه.';
-    if (a.tripsPerYear < 0 || a.tripsPerYear > 30) return 'عدد الرحلات يجب أن يكون بين 0 و30.';
+    if (!Number.isInteger(a.tripsPerYear) || a.tripsPerYear < 0 || a.tripsPerYear > 30) return 'عدد الرحلات يجب أن يكون عددًا صحيحًا بين 0 و30.';
   }
   if (step === 4 && a.priorities.length === 0) return 'اختر أولوية واحدة على الأقل لنرتّب لك الخيارات.';
+  if (step === 4) return cashbackInputError(a);
   return '';
 }
 
@@ -105,11 +108,11 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
         <h2>كم تنفق تقريبًا؟</h2><p className="sub">أرقام تقريبية تكفي، والإنفاق الدولي جزء من الإجمالي وليس مبلغًا إضافيًا.</p>
         <div className="field">
           <label className="field-label" htmlFor="spend">إجمالي إنفاقك الشهري</label>
-          <div className="input-wrap"><input id="spend" type="number" inputMode="decimal" min="0" step="25" value={answers.monthlySpendKwd} onChange={(e) => patch({ monthlySpendKwd: num(e.target.value) })} data-testid="input-monthly-spend" /><span className="input-unit">د.ك / شهر</span></div>
+          <div className="input-wrap"><input id="spend" type="number" inputMode="decimal" min="0" step="0.001" value={answers.monthlySpendKwd} onChange={(e) => patch({ monthlySpendKwd: num(e.target.value) })} data-testid="input-monthly-spend" /><span className="input-unit">د.ك / شهر</span></div>
         </div>
         <div className="field">
           <label className="field-label" htmlFor="intl">منه: الإنفاق خارج الكويت</label>
-          <div className="input-wrap"><input id="intl" type="number" inputMode="decimal" min="0" step="25" value={answers.internationalMonthlySpendKwd} onChange={(e) => patch({ internationalMonthlySpendKwd: num(e.target.value) })} data-testid="input-international-spend" /><span className="input-unit">د.ك / شهر</span></div>
+          <div className="input-wrap"><input id="intl" type="number" inputMode="decimal" min="0" step="0.001" value={answers.internationalMonthlySpendKwd} onChange={(e) => patch({ internationalMonthlySpendKwd: num(e.target.value) })} data-testid="input-international-spend" /><span className="input-unit">د.ك / شهر</span></div>
           <small className="hint">يجب ألا يزيد عن إجمالي الإنفاق أعلاه.</small>
         </div>
         <div className="field">
@@ -145,6 +148,7 @@ export function QuizWizard({ answers, patch, travelMode, onToggleTravel, onSubmi
               {on && <span className="tick"><Check size={14} /></span>}<b>{o.label}</b>
             </button>); })}
         </div>
+        {answers.priorities.includes('cashback') && <CashbackInputs answers={answers} patch={patch} />}
       </div>}
 
       {error && <div className="form-error" role="alert" data-testid="wizard-error">{error}</div>}

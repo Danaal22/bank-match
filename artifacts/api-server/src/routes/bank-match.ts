@@ -6,7 +6,7 @@ import {
   GetBankRecommendationsResponse,
   ListBankProductsResponse,
 } from "@workspace/api-zod";
-import { loadCatalog, rankProducts } from "../lib/bank-matching";
+import { loadCatalog, rankProducts, rankingPolicy, matchingMethodology, validateAnswers } from "../lib/bank-matching";
 import { explainRecommendations } from "../lib/recommendation-explanation";
 
 const router: IRouter = Router();
@@ -29,14 +29,25 @@ router.post("/recommendations", async (req, res): Promise<void> => {
   const parsed = GetBankRecommendationsBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "يرجى مراجعة إجابات الاختبار وإدخال قيم صحيحة." }); return; }
   const answers = parsed.data;
-  if (
-    answers.internationalMonthlySpendKwd > answers.monthlySpendKwd ||
-    answers.monthlySpendKwd > 1_000_000 ||
-    answers.priorities.length > 6
-  ) {
-    res.status(400).json({ error: "الإنفاق الدولي يجب ألا يتجاوز إجمالي الإنفاق الشهري، ويجب أن تكون القيم ضمن حدود معقولة." });
+  const error = validateAnswers(answers);
+  if (error) {
+    res.status(400).json({ error });
     return;
   }
+  const recommendations = rankProducts(await loadCatalog(), answers);
+  res.json(GetBankRecommendationsResponse.parse({
+    recommendations, explanationSource: "rules", matchingVersion: "2",
+    rankingPolicy: rankingPolicy(answers), methodology: matchingMethodology,
+  }));
+});
+
+// Optional, user-triggered enhancement: never lies on the core results path.
+router.post("/recommendation-explanations", async (req, res): Promise<void> => {
+  const parsed = GetBankRecommendationsBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: "يرجى مراجعة إجابات الاختبار." }); return; }
+  const answers = parsed.data;
+  const error = validateAnswers(answers);
+  if (error) { res.status(400).json({ error }); return; }
   const recommendations = rankProducts(await loadCatalog(), answers);
   let explanationSource: "openrouter" | "rules" = "rules";
   try {
@@ -45,9 +56,8 @@ router.post("/recommendations", async (req, res): Promise<void> => {
     req.log.warn("AI explanation unavailable; using the transparent rule-based explanation");
   }
   res.json(GetBankRecommendationsResponse.parse({
-    recommendations,
-    explanationSource,
-    methodology: "نسبة التطابق مؤشر لترجيح التفضيلات وليست احتمال موافقة أو تقييم جودة مطلقًا. نرشّح فقط نوع البنك والمنتج المحددين، ثم نزن نمط الاستخدام وأولوياتك ومزايا السفر والرسوم السنوية الموثقة. لا نعامل الرسوم المجهولة كرسوم صفرية، ولا نرتب بالتكلفة الكلية إذا كانت ناقصة. عند عدم وجود ثلاثة منتجات موثقة ضمن تفضيلاتك نعرض عددًا أقل بدل إدراج خيارات مخالفة. لا نتحقق من دخلك أو جنسيتك أو سجلك الائتماني.",
+    recommendations, explanationSource, matchingVersion: "2",
+    rankingPolicy: rankingPolicy(answers), methodology: matchingMethodology,
   }));
 });
 

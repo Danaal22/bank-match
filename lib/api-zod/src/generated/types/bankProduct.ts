@@ -7,6 +7,7 @@
  */
 import type { BankProductProductType } from './bankProductProductType';
 import type { BankProductShariaStatus } from './bankProductShariaStatus';
+import type { CashbackProgram } from './cashbackProgram';
 import type { ProductSource } from './productSource';
 
 export interface BankProduct {
@@ -26,6 +27,7 @@ export interface BankProduct {
   foreignTransactionFeePercent: number | null;
   /** @nullable */
   cashbackPercent: number | null;
+  cashbackProgram: CashbackProgram | null;
   /** @nullable */
   minimumBalanceKwd: number | null;
   features: string[];

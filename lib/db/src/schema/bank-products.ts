@@ -1,6 +1,7 @@
 import {
   date,
   foreignKey,
+  integer,
   jsonb,
   numeric,
   pgTable,
@@ -13,6 +14,16 @@ import { z } from "zod/v4";
 export type ProductSource = {
   title: string;
   url: string;
+};
+
+export type CashbackProgram = {
+  minimumMonthlySpendKwd: number;
+  minimumSpendBasis: "total" | "eligible";
+  monthlyCapKwd: number;
+  minimumRedemptionKwd: number;
+  rules: { category: "groceries" | "dining" | "health" | "utilities" | "streaming" | "delivery" | "fuel" | "onlineFashion"; ratePercent: number; monthlyCapKwd: number | null }[];
+  tiers: { fromKwd: number; throughKwd: number | null; ratePercent: number }[];
+  conditionsAr: string;
 };
 
 export const banksTable = pgTable("banks", {
@@ -49,6 +60,8 @@ export const bankProductsTable = pgTable(
       scale: 4,
       mode: "number",
     }),
+    cashbackProgram: jsonb("cashback_program").$type<CashbackProgram>(),
+    catalogRevision: integer("catalog_revision").notNull().default(0),
     minimumBalanceKwd: numeric("minimum_balance_kwd", {
       precision: 10,
       scale: 3,

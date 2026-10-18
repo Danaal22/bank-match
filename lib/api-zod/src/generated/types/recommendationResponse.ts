@@ -7,9 +7,12 @@
  */
 import type { Recommendation } from './recommendation';
 import type { RecommendationResponseExplanationSource } from './recommendationResponseExplanationSource';
+import type { RecommendationResponseMatchingVersion } from './recommendationResponseMatchingVersion';
 
 export interface RecommendationResponse {
   recommendations: Recommendation[];
   explanationSource: RecommendationResponseExplanationSource;
   methodology: string;
+  matchingVersion: RecommendationResponseMatchingVersion;
+  rankingPolicy: string;
 }

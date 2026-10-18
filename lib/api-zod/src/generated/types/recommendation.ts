@@ -7,6 +7,7 @@
  */
 import type { AnnualCost } from './annualCost';
 import type { BankProduct } from './bankProduct';
+import type { MatchComponent } from './matchComponent';
 
 export interface Recommendation {
   product: BankProduct;
@@ -18,4 +19,5 @@ export interface Recommendation {
   reasons: string[];
   annualCost: AnnualCost;
   recommendationText: string;
+  scoreBreakdown: MatchComponent[];
 }

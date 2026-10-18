@@ -34,6 +34,23 @@ export const ListBankProductsResponseItem = zod.object({
   "annualFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
+  "cashbackProgram": zod.union([zod.object({
+  "minimumMonthlySpendKwd": zod.number(),
+  "minimumSpendBasis": zod.enum(['total', 'eligible']),
+  "monthlyCapKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number(),
+  "rules": zod.array(zod.object({
+  "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
+  "ratePercent": zod.number(),
+  "monthlyCapKwd": zod.number().nullable()
+})),
+  "tiers": zod.array(zod.object({
+  "fromKwd": zod.number(),
+  "throughKwd": zod.number().nullable(),
+  "ratePercent": zod.number()
+})),
+  "conditionsAr": zod.string()
+}),zod.null()]),
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
@@ -68,6 +85,23 @@ export const GetBankProductResponse = zod.object({
   "annualFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
+  "cashbackProgram": zod.union([zod.object({
+  "minimumMonthlySpendKwd": zod.number(),
+  "minimumSpendBasis": zod.enum(['total', 'eligible']),
+  "monthlyCapKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number(),
+  "rules": zod.array(zod.object({
+  "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
+  "ratePercent": zod.number(),
+  "monthlyCapKwd": zod.number().nullable()
+})),
+  "tiers": zod.array(zod.object({
+  "fromKwd": zod.number(),
+  "throughKwd": zod.number().nullable(),
+  "ratePercent": zod.number()
+})),
+  "conditionsAr": zod.string()
+}),zod.null()]),
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
@@ -84,22 +118,59 @@ export const GetBankProductResponse = zod.object({
  * @summary Rank products for a user's needs
  */
 export const getBankRecommendationsBodyMonthlySpendKwdMin = 0;
+export const getBankRecommendationsBodyMonthlySpendKwdMax = 1000000;
 
 export const getBankRecommendationsBodyInternationalMonthlySpendKwdMin = 0;
 
 export const getBankRecommendationsBodyTripsPerYearMin = 0;
 export const getBankRecommendationsBodyTripsPerYearMax = 30;
 
+export const getBankRecommendationsBodyPrioritiesMax = 6;
+
+export const getBankRecommendationsBodyCashbackSpendingGroceriesMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingGroceriesMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingDiningMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingDiningMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingHealthMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingHealthMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingUtilitiesMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingUtilitiesMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingStreamingMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingStreamingMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingDeliveryMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingDeliveryMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingFuelMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingFuelMax = 1000000;
+
+export const getBankRecommendationsBodyCashbackSpendingOnlineFashionMin = 0;
+export const getBankRecommendationsBodyCashbackSpendingOnlineFashionMax = 1000000;
+
 
 
 export const GetBankRecommendationsBody = zod.object({
   "job": zod.enum(['student', 'employee', 'traveler']),
-  "monthlySpendKwd": zod.number().min(getBankRecommendationsBodyMonthlySpendKwdMin),
+  "monthlySpendKwd": zod.number().min(getBankRecommendationsBodyMonthlySpendKwdMin).max(getBankRecommendationsBodyMonthlySpendKwdMax),
   "internationalMonthlySpendKwd": zod.number().min(getBankRecommendationsBodyInternationalMonthlySpendKwdMin),
   "tripsPerYear": zod.number().int().min(getBankRecommendationsBodyTripsPerYearMin).max(getBankRecommendationsBodyTripsPerYearMax),
   "bankPreference": zod.enum(['any', 'islamic', 'conventional']),
-  "priorities": zod.array(zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card'])),
-  "productPreference": zod.enum(['any', 'card', 'account'])
+  "priorities": zod.array(zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card'])).min(1).max(getBankRecommendationsBodyPrioritiesMax),
+  "productPreference": zod.enum(['any', 'card', 'account']),
+  "cashbackSpending": zod.object({
+  "groceries": zod.number().min(getBankRecommendationsBodyCashbackSpendingGroceriesMin).max(getBankRecommendationsBodyCashbackSpendingGroceriesMax).optional(),
+  "dining": zod.number().min(getBankRecommendationsBodyCashbackSpendingDiningMin).max(getBankRecommendationsBodyCashbackSpendingDiningMax).optional(),
+  "health": zod.number().min(getBankRecommendationsBodyCashbackSpendingHealthMin).max(getBankRecommendationsBodyCashbackSpendingHealthMax).optional(),
+  "utilities": zod.number().min(getBankRecommendationsBodyCashbackSpendingUtilitiesMin).max(getBankRecommendationsBodyCashbackSpendingUtilitiesMax).optional(),
+  "streaming": zod.number().min(getBankRecommendationsBodyCashbackSpendingStreamingMin).max(getBankRecommendationsBodyCashbackSpendingStreamingMax).optional(),
+  "delivery": zod.number().min(getBankRecommendationsBodyCashbackSpendingDeliveryMin).max(getBankRecommendationsBodyCashbackSpendingDeliveryMax).optional(),
+  "fuel": zod.number().min(getBankRecommendationsBodyCashbackSpendingFuelMin).max(getBankRecommendationsBodyCashbackSpendingFuelMax).optional(),
+  "onlineFashion": zod.number().min(getBankRecommendationsBodyCashbackSpendingOnlineFashionMin).max(getBankRecommendationsBodyCashbackSpendingOnlineFashionMax).optional()
+}).optional().describe('Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.')
 })
 
 export const getBankRecommendationsResponseRecommendationsItemMatchPercentMin = 0;
@@ -123,6 +194,23 @@ export const GetBankRecommendationsResponse = zod.object({
   "annualFeeKwd": zod.number().nullable(),
   "foreignTransactionFeePercent": zod.number().nullable(),
   "cashbackPercent": zod.number().nullable(),
+  "cashbackProgram": zod.union([zod.object({
+  "minimumMonthlySpendKwd": zod.number(),
+  "minimumSpendBasis": zod.enum(['total', 'eligible']),
+  "monthlyCapKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number(),
+  "rules": zod.array(zod.object({
+  "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
+  "ratePercent": zod.number(),
+  "monthlyCapKwd": zod.number().nullable()
+})),
+  "tiers": zod.array(zod.object({
+  "fromKwd": zod.number(),
+  "throughKwd": zod.number().nullable(),
+  "ratePercent": zod.number()
+})),
+  "conditionsAr": zod.string()
+}),zod.null()]),
   "minimumBalanceKwd": zod.number().nullable(),
   "features": zod.array(zod.string()),
   "eligibility": zod.string(),
@@ -141,13 +229,158 @@ export const GetBankRecommendationsResponse = zod.object({
   "knownAnnualCashbackKwd": zod.number(),
   "knownNetAnnualCostKwd": zod.number(),
   "complete": zod.boolean(),
+  "feesComplete": zod.boolean(),
+  "cashbackEstimated": zod.boolean(),
+  "cashbackNote": zod.string(),
   "missing": zod.array(zod.string()),
   "calculationNote": zod.string()
 }),
-  "recommendationText": zod.string()
+  "recommendationText": zod.string(),
+  "scoreBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "weight": zod.number(),
+  "earned": zod.number()
+}))
 })),
   "explanationSource": zod.enum(['openrouter', 'rules']),
-  "methodology": zod.string()
+  "methodology": zod.string(),
+  "matchingVersion": zod.enum(['2']),
+  "rankingPolicy": zod.string()
+})
+
+
+/**
+ * @summary Optionally enhance an already available recommendation
+ */
+export const explainBankRecommendationsBodyMonthlySpendKwdMin = 0;
+export const explainBankRecommendationsBodyMonthlySpendKwdMax = 1000000;
+
+export const explainBankRecommendationsBodyInternationalMonthlySpendKwdMin = 0;
+
+export const explainBankRecommendationsBodyTripsPerYearMin = 0;
+export const explainBankRecommendationsBodyTripsPerYearMax = 30;
+
+export const explainBankRecommendationsBodyPrioritiesMax = 6;
+
+export const explainBankRecommendationsBodyCashbackSpendingGroceriesMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingGroceriesMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingDiningMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingDiningMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingHealthMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingHealthMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingUtilitiesMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingUtilitiesMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingStreamingMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingStreamingMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingDeliveryMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingDeliveryMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingFuelMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingFuelMax = 1000000;
+
+export const explainBankRecommendationsBodyCashbackSpendingOnlineFashionMin = 0;
+export const explainBankRecommendationsBodyCashbackSpendingOnlineFashionMax = 1000000;
+
+
+
+export const ExplainBankRecommendationsBody = zod.object({
+  "job": zod.enum(['student', 'employee', 'traveler']),
+  "monthlySpendKwd": zod.number().min(explainBankRecommendationsBodyMonthlySpendKwdMin).max(explainBankRecommendationsBodyMonthlySpendKwdMax),
+  "internationalMonthlySpendKwd": zod.number().min(explainBankRecommendationsBodyInternationalMonthlySpendKwdMin),
+  "tripsPerYear": zod.number().int().min(explainBankRecommendationsBodyTripsPerYearMin).max(explainBankRecommendationsBodyTripsPerYearMax),
+  "bankPreference": zod.enum(['any', 'islamic', 'conventional']),
+  "priorities": zod.array(zod.enum(['cashback', 'travel', 'low_fees', 'sharia', 'account', 'card'])).min(1).max(explainBankRecommendationsBodyPrioritiesMax),
+  "productPreference": zod.enum(['any', 'card', 'account']),
+  "cashbackSpending": zod.object({
+  "groceries": zod.number().min(explainBankRecommendationsBodyCashbackSpendingGroceriesMin).max(explainBankRecommendationsBodyCashbackSpendingGroceriesMax).optional(),
+  "dining": zod.number().min(explainBankRecommendationsBodyCashbackSpendingDiningMin).max(explainBankRecommendationsBodyCashbackSpendingDiningMax).optional(),
+  "health": zod.number().min(explainBankRecommendationsBodyCashbackSpendingHealthMin).max(explainBankRecommendationsBodyCashbackSpendingHealthMax).optional(),
+  "utilities": zod.number().min(explainBankRecommendationsBodyCashbackSpendingUtilitiesMin).max(explainBankRecommendationsBodyCashbackSpendingUtilitiesMax).optional(),
+  "streaming": zod.number().min(explainBankRecommendationsBodyCashbackSpendingStreamingMin).max(explainBankRecommendationsBodyCashbackSpendingStreamingMax).optional(),
+  "delivery": zod.number().min(explainBankRecommendationsBodyCashbackSpendingDeliveryMin).max(explainBankRecommendationsBodyCashbackSpendingDeliveryMax).optional(),
+  "fuel": zod.number().min(explainBankRecommendationsBodyCashbackSpendingFuelMin).max(explainBankRecommendationsBodyCashbackSpendingFuelMax).optional(),
+  "onlineFashion": zod.number().min(explainBankRecommendationsBodyCashbackSpendingOnlineFashionMin).max(explainBankRecommendationsBodyCashbackSpendingOnlineFashionMax).optional()
+}).optional().describe('Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.')
+})
+
+export const explainBankRecommendationsResponseRecommendationsItemMatchPercentMin = 0;
+export const explainBankRecommendationsResponseRecommendationsItemMatchPercentMax = 100;
+
+
+
+export const ExplainBankRecommendationsResponse = zod.object({
+  "recommendations": zod.array(zod.object({
+  "product": zod.object({
+  "id": zod.string(),
+  "bankNameAr": zod.string(),
+  "bankNameEn": zod.string(),
+  "bankWebsite": zod.string(),
+  "bankInitials": zod.string(),
+  "productNameAr": zod.string(),
+  "productNameEn": zod.string(),
+  "productType": zod.enum(['card', 'account']),
+  "category": zod.string(),
+  "shariaStatus": zod.enum(['islamic', 'conventional', 'unknown']),
+  "annualFeeKwd": zod.number().nullable(),
+  "foreignTransactionFeePercent": zod.number().nullable(),
+  "cashbackPercent": zod.number().nullable(),
+  "cashbackProgram": zod.union([zod.object({
+  "minimumMonthlySpendKwd": zod.number(),
+  "minimumSpendBasis": zod.enum(['total', 'eligible']),
+  "monthlyCapKwd": zod.number(),
+  "minimumRedemptionKwd": zod.number(),
+  "rules": zod.array(zod.object({
+  "category": zod.enum(['groceries', 'dining', 'health', 'utilities', 'streaming', 'delivery', 'fuel', 'onlineFashion']),
+  "ratePercent": zod.number(),
+  "monthlyCapKwd": zod.number().nullable()
+})),
+  "tiers": zod.array(zod.object({
+  "fromKwd": zod.number(),
+  "throughKwd": zod.number().nullable(),
+  "ratePercent": zod.number()
+})),
+  "conditionsAr": zod.string()
+}),zod.null()]),
+  "minimumBalanceKwd": zod.number().nullable(),
+  "features": zod.array(zod.string()),
+  "eligibility": zod.string(),
+  "feeNotes": zod.string(),
+  "sources": zod.array(zod.object({
+  "title": zod.string(),
+  "url": zod.string()
+})),
+  "lastVerified": zod.coerce.date()
+}),
+  "matchPercent": zod.number().int().min(explainBankRecommendationsResponseRecommendationsItemMatchPercentMin).max(explainBankRecommendationsResponseRecommendationsItemMatchPercentMax),
+  "reasons": zod.array(zod.string()),
+  "annualCost": zod.object({
+  "knownAnnualFeesKwd": zod.number(),
+  "knownAnnualForeignFeesKwd": zod.number(),
+  "knownAnnualCashbackKwd": zod.number(),
+  "knownNetAnnualCostKwd": zod.number(),
+  "complete": zod.boolean(),
+  "feesComplete": zod.boolean(),
+  "cashbackEstimated": zod.boolean(),
+  "cashbackNote": zod.string(),
+  "missing": zod.array(zod.string()),
+  "calculationNote": zod.string()
+}),
+  "recommendationText": zod.string(),
+  "scoreBreakdown": zod.array(zod.object({
+  "label": zod.string(),
+  "weight": zod.number(),
+  "earned": zod.number()
+}))
+})),
+  "explanationSource": zod.enum(['openrouter', 'rules']),
+  "methodology": zod.string(),
+  "matchingVersion": zod.enum(['2']),
+  "rankingPolicy": zod.string()
 })
 
 

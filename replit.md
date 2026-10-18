@@ -6,6 +6,7 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 
 - `pnpm --filter @workspace/api-server run dev` — managed API workflow
 - `pnpm --filter @workspace/bank-match run dev` — managed website workflow
+- `pnpm --filter @workspace/api-server run test:matching` — deterministic ranking and financial-calculation checks, without DB writes or AI calls
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -26,7 +27,9 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 
 - `artifacts/bank-match/` — RTL React website.
 - `artifacts/api-server/src/lib/bank-catalog.ts` — initial official-source catalog; existing database rows are not overwritten on startup.
-- `artifacts/api-server/src/lib/bank-matching.ts` — deterministic match scoring and annual fee math.
+- `artifacts/api-server/src/lib/bank-matching.ts` — database catalog loading.
+- `artifacts/api-server/src/lib/matching-engine.ts` and `cashback-calculation.ts` — pure scoring, ordering and annual-cost math.
+- `artifacts/api-server/src/lib/bank-catalog-enrichment.ts` — reviewed source-backed data updates, applied once by catalog revision.
 - `artifacts/api-server/src/lib/recommendation-explanation.ts` — optional Arabic OpenRouter explanations with fallback.
 - `lib/db/src/schema/bank-products.ts` — banks and product records.
 - `lib/api-spec/openapi.yaml` — API contract; regenerate clients after changes.
@@ -35,6 +38,8 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 
 - Quiz responses and results are kept only for the browser tab session, not stored in the shared product database.
 - AI is for explanatory text, not fee calculation, ranking, or invented financial facts.
+- Core recommendations never await AI. Extra explanation is requested explicitly, cached temporarily and rate/concurrency limited; unavailable AI does not block matching.
+- Optional, non-overlapping category amounts support conditional cashback scenarios. They are subsets of monthly spend, not extra spending.
 - The schema carries Arabic and English names to support later English localization; the present interface is Arabic.
 
 ## Product

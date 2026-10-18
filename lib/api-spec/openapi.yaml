@@ -78,6 +78,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RecommendationResponse"
+  /recommendation-explanations:
+    post:
+      operationId: explainBankRecommendations
+      tags: [bank-match]
+      summary: Optionally enhance an already available recommendation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizAnswers"
+      responses:
+        "200":
+          description: Same deterministic ranking, optionally enhanced short explanations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationResponse"
 components:
   schemas:
     HealthStatus:
@@ -95,6 +113,50 @@ components:
         url:
           type: string
       required: [title, url]
+    CashbackCategory:
+      type: string
+      enum: [groceries, dining, health, utilities, streaming, delivery, fuel, onlineFashion]
+    CashbackSpending:
+      type: object
+      description: Mutually exclusive monthly category amounts, included in total monthly spending. Omit when unknown.
+      properties:
+        groceries: { type: number, minimum: 0, maximum: 1000000 }
+        dining: { type: number, minimum: 0, maximum: 1000000 }
+        health: { type: number, minimum: 0, maximum: 1000000 }
+        utilities: { type: number, minimum: 0, maximum: 1000000 }
+        streaming: { type: number, minimum: 0, maximum: 1000000 }
+        delivery: { type: number, minimum: 0, maximum: 1000000 }
+        fuel: { type: number, minimum: 0, maximum: 1000000 }
+        onlineFashion: { type: number, minimum: 0, maximum: 1000000 }
+    CashbackRule:
+      type: object
+      properties:
+        category: { $ref: "#/components/schemas/CashbackCategory" }
+        ratePercent: { type: number }
+        monthlyCapKwd: { type: [number, "null"] }
+      required: [category, ratePercent, monthlyCapKwd]
+    CashbackTier:
+      type: object
+      properties:
+        fromKwd: { type: number }
+        throughKwd: { type: [number, "null"] }
+        ratePercent: { type: number }
+      required: [fromKwd, throughKwd, ratePercent]
+    CashbackProgram:
+      type: object
+      properties:
+        minimumMonthlySpendKwd: { type: number }
+        minimumSpendBasis: { type: string, enum: [total, eligible] }
+        monthlyCapKwd: { type: number }
+        minimumRedemptionKwd: { type: number }
+        rules:
+          type: array
+          items: { $ref: "#/components/schemas/CashbackRule" }
+        tiers:
+          type: array
+          items: { $ref: "#/components/schemas/CashbackTier" }
+        conditionsAr: { type: string }
+      required: [minimumMonthlySpendKwd, minimumSpendBasis, monthlyCapKwd, minimumRedemptionKwd, rules, tiers, conditionsAr]
     BankProduct:
       type: object
       properties:
@@ -126,6 +188,10 @@ components:
           type: [number, "null"]
         cashbackPercent:
           type: [number, "null"]
+        cashbackProgram:
+          anyOf:
+            - $ref: "#/components/schemas/CashbackProgram"
+            - type: "null"
         minimumBalanceKwd:
           type: [number, "null"]
         features:
@@ -157,6 +223,7 @@ components:
         - annualFeeKwd
         - foreignTransactionFeePercent
         - cashbackPercent
+        - cashbackProgram
         - minimumBalanceKwd
         - features
         - eligibility
@@ -172,6 +239,7 @@ components:
         monthlySpendKwd:
           type: number
           minimum: 0
+          maximum: 1000000
         internationalMonthlySpendKwd:
           type: number
           minimum: 0
@@ -184,12 +252,16 @@ components:
           enum: [any, islamic, conventional]
         priorities:
           type: array
+          minItems: 1
+          maxItems: 6
           items:
             type: string
             enum: [cashback, travel, low_fees, sharia, account, card]
         productPreference:
           type: string
           enum: [any, card, account]
+        cashbackSpending:
+          $ref: "#/components/schemas/CashbackSpending"
       required:
         - job
         - monthlySpendKwd
@@ -211,6 +283,12 @@ components:
           type: number
         complete:
           type: boolean
+        feesComplete:
+          type: boolean
+        cashbackEstimated:
+          type: boolean
+        cashbackNote:
+          type: string
         missing:
           type: array
           items:
@@ -223,8 +301,18 @@ components:
         - knownAnnualCashbackKwd
         - knownNetAnnualCostKwd
         - complete
+        - feesComplete
+        - cashbackEstimated
+        - cashbackNote
         - missing
         - calculationNote
+    MatchComponent:
+      type: object
+      properties:
+        label: { type: string }
+        weight: { type: number }
+        earned: { type: number }
+      required: [label, weight, earned]
     Recommendation:
       type: object
       properties:
@@ -242,7 +330,10 @@ components:
           $ref: "#/components/schemas/AnnualCost"
         recommendationText:
           type: string
-      required: [product, matchPercent, reasons, annualCost, recommendationText]
+        scoreBreakdown:
+          type: array
+          items: { $ref: "#/components/schemas/MatchComponent" }
+      required: [product, matchPercent, reasons, annualCost, recommendationText, scoreBreakdown]
     RecommendationResponse:
       type: object
       properties:
@@ -255,5 +346,10 @@ components:
           enum: [openrouter, rules]
         methodology:
           type: string
-      required: [recommendations, explanationSource, methodology]
+        matchingVersion:
+          type: string
+          enum: ["2"]
+        rankingPolicy:
+          type: string
+      required: [recommendations, explanationSource, methodology, matchingVersion, rankingPolicy]
 

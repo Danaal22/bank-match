@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CashbackSpending } from './cashbackSpending';
 import type { QuizAnswersBankPreference } from './quizAnswersBankPreference';
 import type { QuizAnswersJob } from './quizAnswersJob';
 import type { QuizAnswersPrioritiesItem } from './quizAnswersPrioritiesItem';
@@ -12,7 +13,10 @@ import type { QuizAnswersProductPreference } from './quizAnswersProductPreferenc
 
 export interface QuizAnswers {
   job: QuizAnswersJob;
-  /** @minimum 0 */
+  /**
+     * @minimum 0
+     * @maximum 1000000
+     */
   monthlySpendKwd: number;
   /** @minimum 0 */
   internationalMonthlySpendKwd: number;
@@ -22,6 +26,11 @@ export interface QuizAnswers {
      */
   tripsPerYear: number;
   bankPreference: QuizAnswersBankPreference;
+  /**
+     * @minItems 1
+     * @maxItems 6
+     */
   priorities: QuizAnswersPrioritiesItem[];
   productPreference: QuizAnswersProductPreference;
+  cashbackSpending?: CashbackSpending;
 }
