@@ -1,2 +1,3 @@
 - [Catalog integrity](catalog-integrity.md) — handling conflicting bank fees, conditional cashback, and spending assumptions without false precision.
 - [Interrupted tool recovery](interrupted-tool-recovery.md) — recheck source persistence after a server disconnect before retrying generation.
+- [Vercel deployment](vercel-deployment.md) — explicit pnpm selection for Vercel overrides preserves workspace catalogs and release-age checks.

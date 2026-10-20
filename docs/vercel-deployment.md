@@ -14,7 +14,7 @@
 - Build Command: `npx --yes pnpm@10.26.1 run build:vercel`.
 - Output Directory: `artifacts/bank-match/dist/public`.
 - Install Command: `npx --yes pnpm@10.26.1 install --frozen-lockfile`.
-- Node.js: `22.x`.
+- Node.js: `24.x` (الإصدار الذي اختبر به البناء والخادم).
 - ارفع ملفات الإعداد الجديدة إلى GitHub أولًا. لا تختبر هذه الإعدادات على نسخة قديمة من المستودع.
 
 القيم موجودة أيضًا في `vercel.json`. احذف أي تجاوزات قديمة في لوحة Vercel تخالفها.
@@ -56,7 +56,8 @@ pnpm --filter @workspace/db run push
 تعمل المطابقة والحسابات والأسباب المحلية بدون مفتاح AI.
 لتفعيل الشرح الاختياري خارج Replit، أضف مفتاحك الخاص باسم
 `OPENROUTER_API_KEY` في متغيرات Vercel السرية.
-لا تنسخ مفاتيح تكامل Replit إلى Vercel؛ ليست إعدادات نشر محمولة.
+المسار المجهز لـ Vercel يستخدم مفتاح OpenRouter الخاص بك؛ لا يحتاج نقل مفاتيح
+تكامل Replit إلى منصة أخرى.
 لا تضف مفتاحًا في الواجهة أو باسم يبدأ بـ `VITE_`، ولا تضع أسرارًا في Git.
 
 ## فحص النشر بعد موافقتك

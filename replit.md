@@ -9,6 +9,8 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 - `pnpm --filter @workspace/api-server run test:matching` — deterministic ranking and financial-calculation checks, without DB writes or AI calls
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `pnpm run build:vercel` — production frontend + bundled serverless Express entry; does not migrate databases
+- `pnpm run test:vercel` — exercise the compiled serverless entry against the configured database (seeds public catalog); disable AI keys for the no-key fallback assertion
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
@@ -63,6 +65,7 @@ Arabic-first banking product comparison for people in Kuwait: needs quiz, prefer
 - Never invent bank information; unavailable facts must remain visibly unavailable.
 - Recommendations are guidance only; users must verify terms and fees with the bank.
 - Do not publish changes automatically; the user must review them first.
+- External Vercel setup is documented in `docs/vercel-deployment.md`. It requires a reachable PostgreSQL database with schema prepared separately; no credentials are committed or transferred by the build.
 - Visual direction: a distinctive professional fintech identity with deep navy, ivory, calm green, and a restrained accent; no excessive gradients or random decorative circles.
 - Arabic typography must be comfortably readable with balanced spacing and correct RTL. Use IBM Plex Sans Arabic or Tajawal.
 - Design revisions must preserve all working features and bank data, and use real implementation rather than a visual-only mockup.
