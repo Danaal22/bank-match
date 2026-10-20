@@ -11,7 +11,8 @@ export async function explainRecommendations(
   answers: Answers,
   clientKey: string,
 ): Promise<"openrouter" | "rules"> {
-  if (!process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || !process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || !recommendations.length) return "rules";
+  const configured = Boolean(process.env.OPENROUTER_API_KEY || (process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY && process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL));
+  if (!configured || !recommendations.length) return "rules";
   const key = createHash("sha256").update(JSON.stringify({ answers, recommendations })).digest("hex");
   const now = Date.now();
   const apply = (texts: Texts | null): "openrouter" | "rules" => {
